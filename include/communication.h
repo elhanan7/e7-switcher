@@ -28,8 +28,8 @@ public:
     void connect();
     void close();
 
-    std::vector<uint8_t> send_and_receive(const std::vector<uint8_t>& data);
-    std::vector<uint8_t> receive();
+    void send_message(const std::vector<uint8_t>& data);
+    std::vector<uint8_t> receive_message(int timeout_ms = 15000); // long, per-call timeout
 
     PhoneLoginRecord login(const std::string& account, const std::string& password);
     std::vector<Device> get_device_list(); 
@@ -37,15 +37,21 @@ public:
     LightStatus get_light_status(const std::string& device_name);
 
 private:
-    std::vector<uint8_t> receive_internal();
+    // Stream helpers
+    bool recv_into_buffer_until(size_t min_size, int timeout_ms);
+    bool try_extract_one_packet(std::vector<uint8_t>& out);
+
     std::string host_;
     int port_;
-    int timeout_;
+    int timeout_;   // default short timeout (seconds) set on connect()
     int sock_;
 
     int32_t session_id_;
     int32_t user_id_;
     std::vector<uint8_t> communication_secret_key_;
+
+    // New: incoming stream buffer
+    std::vector<uint8_t> inbuf_;
 };
 
 } // namespace e7_switcher
