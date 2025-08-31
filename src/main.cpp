@@ -4,7 +4,7 @@
 
 #include "client.h"
 #include "communication.h"   // Device struct
-#include "hebcal_assur.h"
+#include "hebcal_is_rest_day.h"
 #include "secrets.h"
 
 const char *tz             = "IST-2IDT,M3.4.4/26,M10.5.0";
@@ -31,7 +31,7 @@ bool ensureWifi(uint32_t timeout_ms = 10000) {
   return WiFi.status() == WL_CONNECTED;
 }
 
-void doAssurActionIfNeeded(bool isAssur) {
+void do_rest_day_action_if_neede(bool isAssur) {
   if (!isAssur) return;
 
   if (!ensureWifi()) {
@@ -47,7 +47,7 @@ void doAssurActionIfNeeded(bool isAssur) {
 }
 
 
-void printDeviceStatus() {
+void print_device_status() {
   e7_switcher::E7Client client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
   e7_switcher::LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
 
@@ -55,15 +55,35 @@ void printDeviceStatus() {
 
 }
 
+const int E7_AUTOSHUTDOWN_TIME_SECONDS = 40 * 60;
+void handle_auto_shutdown() {
+    e7_switcher::E7Client client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
+    e7_switcher::LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
+
+    Serial.printf("Device status: %s\n", status.to_string().c_str());
+
+    if (status.switch_state == 0) {
+      return; // already off
+    }
+
+    if (status.open_time > E7_AUTOSHUTDOWN_TIME_SECONDS) {
+      Serial.printf("[auto shutdown] Sending OFF to \"%s\"...\n", E7_SWITCHER_DEVICE_NAME);
+      client.control_device(E7_SWITCHER_DEVICE_NAME, "off");
+      Serial.println("[auto shutdown] Control command sent.");
+    }
+}
+
 // Timing
-const unsigned long CHECK_INTERVAL_MS = 8UL * 60UL * 1000UL;  // every 8 minutes
+const unsigned long REST_DAY_INTERVAL_MS = 10UL * 60UL * 1000UL;  // every 10 minutes
 const unsigned long BLINK_INTERVAL_MS = 1000UL;               // 1 Hz blink when not assur
+const unsigned long AUTO_SHUTDOWN_INTERVAL_MS = 2UL * 60UL * 1000UL; // every 2 minutes
 
-unsigned long lastCheckMs = 0;
-unsigned long lastBlinkMs = 0;
+unsigned long last_rest_day_check_ms = 0;
+unsigned long last_blink_ms = 0;
+unsigned long last_auto_shutdown_ms = 0;
 
-bool isAssur = false;
-bool blinkState = false;
+bool is_rest_day = false;
+bool blink_state = false;
 
 // Fail compilation if secrets.h isn’t filled in
 static_assert(std::string_view{E7_SWITCHER_ACCOUNT} != "REPLACE_ME", "E7_SWITCHER_ACCOUNT is REPLACE_ME");
@@ -101,16 +121,18 @@ void setup() {
   }
 
   // Initial assur check
-  std::optional<bool> isAssurOpt = hebcalIsAssurBemlachaJerusalem();
-  if (!isAssurOpt.has_value()) {
-    Serial.println("Failed to check assur (will retry later).");
+  std::optional<bool> is_rest_day_opt = hebcal_is_rest_day_in_jerusalem();
+  if (!is_rest_day_opt.has_value()) {
+    Serial.println("Failed to check rest day status (will retry later).");
   } else {
-    Serial.printf("Initial assurBemelacha: %s\n", isAssurOpt.value() ? "true" : "false");
+    Serial.printf("Initial is_rest_day: %s\n", is_rest_day_opt.value() ? "true" : "false");
   }
+
+  is_rest_day = is_rest_day_opt.value_or(false);
   
 
   // Apply initial LED state
-  if (isAssur) {
+  if (is_rest_day) {
     ledWrite(true);     // solid ON
   } else {
     ledWrite(false);    // start blink from OFF
@@ -118,19 +140,19 @@ void setup() {
 
   // If assur at boot, perform action now
   // doAssurActionIfNeeded(isAssur);
-  doAssurActionIfNeeded(true);
-  printDeviceStatus();
+  do_rest_day_action_if_neede(true);
+  print_device_status();
 
-  lastCheckMs = millis();
-  lastBlinkMs = millis();
+  last_auto_shutdown_ms = millis();
+  last_blink_ms = last_auto_shutdown_ms;
+  last_rest_day_check_ms = last_auto_shutdown_ms;
 }
 
 void loop() {
   unsigned long now = millis();
 
-  // 1) Every 8 minutes: ensure WiFi, refresh time, check assur, and act if needed
-  if (now - lastCheckMs >= CHECK_INTERVAL_MS) {
-    lastCheckMs = now;
+  if (now - last_rest_day_check_ms >= REST_DAY_INTERVAL_MS) {
+    last_rest_day_check_ms = now;
 
     // Keep Wi-Fi connected (non-blocking-ish with small timeout inside ensureWifi)
     bool wifiOK = ensureWifi();
@@ -138,6 +160,8 @@ void loop() {
       Serial.printf("[cycle] WiFi OK. IP: %s\n", WiFi.localIP().toString().c_str());
     } else {
       Serial.println("[cycle] WiFi not connected.");
+      delay(1000);
+      return;
     }
 
     // Refresh time (helps if NTP hadn’t synced yet)
@@ -150,38 +174,48 @@ void loop() {
       Serial.println("[cycle] Failed to obtain time.");
     }
 
-    // Check assur status
-    std::optional<bool> newAssurOpt = hebcalIsAssurBemlachaJerusalem();
-    bool newAssur = newAssurOpt.value_or(false); // Assign value if present, else false
-    Serial.printf("[cycle] assurBemelacha: %s\n", newAssur ? "true" : "false");
+    // Check is_rest_day status
+    std::optional<bool> new_rest_day_status_opt = hebcal_is_rest_day_in_jerusalem();
+    bool new_is_rest_day = new_rest_day_status_opt.value_or(false); // Assign value if present, else false
+    Serial.printf("[cycle] is_rest_day: %s\n", new_is_rest_day ? "true" : "false");
 
     // If status changed, update LED behavior immediately
-    if (newAssur != isAssur) {
-      isAssur = newAssur;
-      if (isAssur) {
+    if (new_is_rest_day != is_rest_day) {
+      is_rest_day = new_is_rest_day;
+      if (is_rest_day) {
         ledWrite(true);           // solid ON
       } else {
-        blinkState = false;       // reset blink phase
+        blink_state = false;       // reset blink phase
         ledWrite(false);
-        lastBlinkMs = now;
+        last_blink_ms = now;
       }
     } else {
       // Keep current behavior (solid / blinking)
-      isAssur = newAssur;
+      is_rest_day = new_is_rest_day;
     }
 
     // Do the control action if assur
-    doAssurActionIfNeeded(isAssur);
+    do_rest_day_action_if_neede(is_rest_day);
   }
 
   // 2) LED behavior: solid when assur; 1 Hz blink when not assur
-  if (isAssur) {
+  if (is_rest_day) {
     ledWrite(true);  // make sure it stays solid on
   } else {
-    if (now - lastBlinkMs >= BLINK_INTERVAL_MS) {
-      lastBlinkMs = now;
-      blinkState = !blinkState;
-      ledWrite(blinkState);
+    if (now - last_blink_ms >= BLINK_INTERVAL_MS) {
+      last_blink_ms = now;
+      blink_state = !blink_state;
+      ledWrite(blink_state);
+    }
+  }
+
+  // auto-shutdown
+  if (!is_rest_day)
+  {
+    if (now - last_auto_shutdown_ms >= AUTO_SHUTDOWN_INTERVAL_MS)
+    {
+      last_auto_shutdown_ms = now;
+      handle_auto_shutdown();
     }
   }
 

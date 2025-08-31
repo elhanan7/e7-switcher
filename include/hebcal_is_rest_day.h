@@ -21,10 +21,10 @@
 #define HEBCAL_JERUSALEM_GEONAMEID 281184
 
 // Jerusalem-specific convenience wrapper
-std::optional<bool> hebcalIsAssurBemlachaJerusalem(const char* dtIsoOpt = nullptr,
+std::optional<bool> hebcal_is_rest_day_in_jerusalem(const char* dtIsoOpt = nullptr,
                                     uint32_t timeoutMs = 5000);
 
 // Generic location variant (use different GeoNames IDs if needed)
-std::optional<bool> hebcalIsAssurBemlachaByGeonameId(int geonameId,
+std::optional<bool> hebcal_is_rest_day_by_geoname_id(int geonameId,
                                        const char* dtIsoOpt = nullptr,
                                        uint32_t timeoutMs = 5000);

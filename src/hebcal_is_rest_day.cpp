@@ -1,4 +1,4 @@
-#include "hebcal_assur.h"
+#include "hebcal_is_rest_day.h"
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
@@ -8,7 +8,7 @@
 #include <cstring>          // strlen
 #include <optional>
 
-static String buildHebcalUrl(int geonameId, const char* dtIsoOpt) {
+static String build_hebcal_url(int geonameId, const char* dtIsoOpt) {
   // HTTP only (no TLS), per request.
   String url = "http://www.hebcal.com/zmanim?cfg=json&im=1&geonameid=";
   url += String(geonameId);
@@ -27,7 +27,7 @@ static String buildHebcalUrl(int geonameId, const char* dtIsoOpt) {
   return url;
 }
 
-static std::optional<bool> parseIsAssurFromBody(const String& body) {
+static std::optional<bool> parse_is_rest_day_from_body(const String& body) {
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, body);
 
@@ -47,10 +47,10 @@ static std::optional<bool> parseIsAssurFromBody(const String& body) {
   return status["isAssurBemlacha"].as<bool>();
 }
 
-std::optional<bool> hebcalIsAssurBemlachaByGeonameId(int geonameId,
+std::optional<bool> hebcal_is_rest_day_by_geoname_id(int geonameId,
                                        const char* dtIsoOpt,
                                        uint32_t timeoutMs) {
-  const String url = buildHebcalUrl(geonameId, dtIsoOpt);
+  const String url = build_hebcal_url(geonameId, dtIsoOpt);
 
   WiFiClient net;  // Plain HTTP
   HTTPClient http;
@@ -70,11 +70,11 @@ std::optional<bool> hebcalIsAssurBemlachaByGeonameId(int geonameId,
   const String body = http.getString();
   http.end();
 
-  return parseIsAssurFromBody(body);
+  return parse_is_rest_day_from_body(body);
 }
 
-std::optional<bool> hebcalIsAssurBemlachaJerusalem(const char* dtIsoOpt,
+std::optional<bool> hebcal_is_rest_day_in_jerusalem(const char* dtIsoOpt,
                                     uint32_t timeoutMs) {
-  return hebcalIsAssurBemlachaByGeonameId(HEBCAL_JERUSALEM_GEONAMEID,
+  return hebcal_is_rest_day_by_geoname_id(HEBCAL_JERUSALEM_GEONAMEID,
                                           dtIsoOpt, timeoutMs);
 }
