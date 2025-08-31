@@ -103,6 +103,7 @@ PhoneLoginRecord E7Connection::login(const std::string& account, const std::stri
     session_id_ = login_data.session_id;
     user_id_ = login_data.user_id;
     communication_secret_key_ = login_data.communication_secret_key;
+    Serial.printf("Phone login successful with session ID: %d\n", login_data.session_id);
 
     return login_data;
 }
@@ -144,7 +145,9 @@ std::vector<Device> E7Connection::get_device_list() {
 }
 
 ProtocolPacket E7Connection::control_device(const std::string& device_name, const std::string& action) {
+    Serial.printf("Start of control_device\n");
     std::vector<Device> devices = get_device_list();
+    Serial.printf("Got device list\n");
     auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) {
         return d.name == device_name;
     });
@@ -158,8 +161,11 @@ ProtocolPacket E7Connection::control_device(const std::string& device_name, cons
     int on_or_off = (action == "on") ? 1 : 0;
 
     std::vector<uint8_t> control_packet = build_device_control_payload(session_id_, user_id_, communication_secret_key_, it->did, dec_pwd_bytes, on_or_off);
+    Serial.printf("Sending control command to \"%s\"...\n", device_name.c_str());
     send_and_receive(control_packet); // ignore (ack) response
+    Serial.printf("Control command sent to \"%s\"\n", device_name.c_str());
     std::vector<uint8_t> response = receive(); // async resonse
+    Serial.printf("Received response from \"%s\"\n", device_name.c_str());
     return parse_protocol_packet(response);
 }
 
@@ -177,6 +183,6 @@ LightStatus E7Connection::get_light_status(const std::string& device_name) {
     send_and_receive(query_packet); // ignore (ack) response
     std::vector<uint8_t> response = receive();
     std::vector<uint8_t> payload = parse_protocol_packet(response).payload;
-    return parse_light_status(response);
+    return parse_light_status(payload);
 }
 } // namespace e7_switcher
