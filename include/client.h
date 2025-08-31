@@ -12,6 +12,7 @@ public:
 
     std::vector<Device> list_devices();
     void control_device(const std::string& device_name, const std::string& action);
+    LightStatus get_light_status(const std::string& device_name);
 
 private:
     E7Connection conn_;

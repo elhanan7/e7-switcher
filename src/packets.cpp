@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <stdexcept>
 
 namespace e7_switcher {
 
@@ -23,38 +24,25 @@ std::vector<uint8_t> build_header(
     bool is_version_2
 ) {
     std::vector<uint8_t> hdr(HEADER_SIZE, 0);
+    Writer w(hdr);
     uint16_t total_len = payload_len + HEADER_SIZE + CRC_TAIL_SIZE;
 
-    hdr[0] = MAGIC1 & 0xFF;
-    hdr[1] = (MAGIC1 >> 8) & 0xFF;
-    hdr[2] = total_len & 0xFF;
-    hdr[3] = (total_len >> 8) & 0xFF;
+    w.u16(MAGIC1); // [0, 2]
+    w.u16(total_len); // [2, 4]
     uint16_t version = is_version_2 ? PROTO_VER_2 : PROTO_VER_3;
-    hdr[4] = version & 0xFF;
-    hdr[5] = (version >> 8) & 0xFF;
-    hdr[6] = cmd_code & 0xFF;
-    hdr[7] = (cmd_code >> 8) & 0xFF;
-    hdr[8] = session & 0xFF;
-    hdr[9] = (session >> 8) & 0xFF;
-    hdr[10] = (session >> 16) & 0xFF;
-    hdr[11] = (session >> 24) & 0xFF;
-    hdr[12] = serial & 0xFF;
-    hdr[13] = (serial >> 8) & 0xFF;
-    hdr[14] = direction & 0xFF;
-    hdr[15] = errcode;
-    hdr[16] = control_attr & 0xFF;
-    hdr[17] = (control_attr >> 8) & 0xFF;
-    hdr[18] = user_id & 0xFF;
-    hdr[19] = (user_id >> 8) & 0xFF;
-    hdr[20] = (user_id >> 16) & 0xFF;
-    hdr[21] = (user_id >> 24) & 0xFF;
+    w.u16(version); // [4, 6]
+    w.u16(cmd_code); // [6, 8]
+    w.u32(session); // [8, 12]
+    w.u16(serial); // [12, 14]
+    w.u8(direction); // [14, 15]
+    w.u8(errcode); // [15, 16]
+    w.u16(control_attr); // [16, 18]
+    w.u32(user_id); // [18, 22]
+    w.put_constant(0, 2); // [22, 24] user id is encoded with 6 bytes
     uint32_t ts = now_unix();
-    hdr[24] = ts & 0xFF;
-    hdr[25] = (ts >> 8) & 0xFF;
-    hdr[26] = (ts >> 16) & 0xFF;
-    hdr[27] = (ts >> 24) & 0xFF;
-    hdr[38] = MAGIC2 & 0xFF;
-    hdr[39] = (MAGIC2 >> 8) & 0xFF;
+    w.u32(ts); // [24, 28]
+    w.put_constant(0, 10); // [28, 38] reserved
+    w.u16(MAGIC2); // [38, 40]
 
     return hdr;
 }
@@ -67,6 +55,49 @@ std::vector<uint8_t> fixed_len_str(const std::string& s, size_t n) {
 
 } // namespace
 
+Writer::Writer(std::vector<uint8_t>& data) : data_(data), p_(0) {}
+
+void Writer::u8(uint8_t b) {
+    _need(1);
+    data_[p_++] = (b & 0xFF);
+}
+void Writer::u16(uint16_t s) {
+    _need(2);
+    data_[p_++] = s & 0xFF;
+    data_[p_++] = (s >> 8) & 0xFF;
+}
+void Writer::u32(uint32_t i) {
+    _need(4);
+    data_[p_++] = i & 0xFF;
+    data_[p_++] = (i >> 8) & 0xFF;
+    data_[p_++] = (i >> 16) & 0xFF;
+    data_[p_++] = (i >> 24) & 0xFF;
+}
+
+void Writer::put(const std::vector<uint8_t>& d) {
+    _need(d.size());
+    std::memcpy(data_.data() + p_, d.data(), d.size());
+    p_ += d.size();
+}
+
+void Writer::put(const uint8_t* d, size_t n) {
+    _need(n);
+    std::memcpy(data_.data() + p_, d, n);
+    p_ += n;
+}
+
+void Writer::put_constant(uint8_t b, size_t n) {
+    _need(n);
+    std::memset(data_.data() + p_, b, n);
+    p_ += n;
+}
+
+void Writer::_need(size_t n) {
+    if (p_ + n > data_.size()) {
+        throw std::out_of_range("Not enough room in buffer");
+    }
+}
+
 std::vector<uint8_t> build_login_payload(
     const std::string& account,
     const std::string& password
@@ -77,31 +108,32 @@ std::vector<uint8_t> build_login_payload(
     uint16_t control_attr = 0x0100;
 
     std::vector<uint8_t> buf(160, 0);
-    size_t off = 0;
+    Writer w(buf);
 
-    buf[off++] = 1;
-    std::memcpy(buf.data() + off, DEFAULT_BUILD_VERSION, 16); off += 16;
-    buf[off++] = 2;
-    buf[off++] = 50;
-    std::memcpy(buf.data() + off, DEFAULT_SHORT_APP_ID, 8); off += 8;
-    std::memcpy(buf.data() + off, DEFAULT_PACKAGE_VERSION, 2); off += 2;
-    std::memcpy(buf.data() + off, DEFAULT_MAC, 6); off += 6;
-    std::memcpy(buf.data() + off, DEFAULT_BSSID, 6); off += 6;
+    w.u8(1);
+    w.put(DEFAULT_BUILD_VERSION, 16);
+    w.u8(2);
+    w.u8(50);
+    
+    w.put(DEFAULT_SHORT_APP_ID, 8);
+    w.put(DEFAULT_PACKAGE_VERSION, 2);
+    w.put(DEFAULT_MAC, 6);
+    w.put(DEFAULT_BSSID, 6);
+    
     // IP address is not used in the python code, so we can leave it as 0
-    off += 4;
-    buf[off++] = 3;
+    w.u32(0);
+    w.u8(3);
     std::vector<uint8_t> acc_b = fixed_len_str(account, 32);
-    std::memcpy(buf.data() + off, acc_b.data(), 32); off += 32;
+    w.put(acc_b);
+    
     std::vector<uint8_t> pwd_b = fixed_len_str(password, 32);
-    std::memcpy(buf.data() + off, pwd_b.data(), 32); off += 32;
-    off += 4; // uid
+    w.put(pwd_b);
+    
+    w.u32(0); // user id
     int32_t ts = java_bug_seconds_from_now();
-    buf[off++] = ts & 0xFF;
-    buf[off++] = (ts >> 8) & 0xFF;
-    buf[off++] = (ts >> 16) & 0xFF;
-    buf[off++] = (ts >> 24) & 0xFF;
-    off += 32; // trailing 32 zeros
-    for(int i=0; i<10; ++i) buf[off++] = 0x0a;
+    w.u32(ts);
+    w.put_constant(0, 32);
+    w.put_constant(0x0A, 10);
 
     std::vector<uint8_t> encrypted = encrypt_to_hex_ecb_pkcs7(buf, AES_KEY_2_50);
 
@@ -136,30 +168,23 @@ std::vector<uint8_t> build_device_control_payload(
     int on_or_off
 ) {
     std::vector<uint8_t> buf(49, 0);
-    size_t off = 0;
+    Writer w(buf);
 
-    buf[off++] = device_id & 0xFF;
-    buf[off++] = (device_id >> 8) & 0xFF;
-    buf[off++] = (device_id >> 16) & 0xFF;
-    buf[off++] = (device_id >> 24) & 0xFF;
-
-    buf[off++] = user_id & 0xFF;
-    buf[off++] = (user_id >> 8) & 0xFF;
-    buf[off++] = (user_id >> 16) & 0xFF;
-    buf[off++] = (user_id >> 24) & 0xFF;
-
+    w.u32(device_id);
+    w.u32(user_id);
+    
     std::vector<uint8_t> padded_pwd = device_pwd;
     padded_pwd.resize(32, 0);
     std::vector<uint8_t> encrypted_pwd = encrypt_to_hex_ecb_pkcs7(padded_pwd, AES_KEY_NATIVE);
-    std::memcpy(buf.data() + off, encrypted_pwd.data(), 32); off += 32;
+    w.put(encrypted_pwd);
 
-    buf[off++] = 0x0A;
-    buf[off++] = 0x06;
-    buf[off++] = 0x00;
-    buf[off++] = 0x01; // line_type
-    buf[off++] = on_or_off & 0xFF;
-    off += 4; // closing time
-
+    w.u8(0x0A);
+    w.u8(0x06);
+    w.u8(0x00);
+    w.u8(0x01); // line_type
+    w.u8(on_or_off);
+    w.u32(0); // closing time
+    
     std::vector<uint8_t> header = build_header(buf.size(), CMD_DEVICE_CONTROL, session_id, 1104, 0, 1, 0, user_id, false);
 
     std::vector<uint8_t> packet = header;
@@ -170,5 +195,28 @@ std::vector<uint8_t> build_device_control_payload(
 
     return packet;
 }
+
+std::vector<uint8_t> build_device_query_payload(
+    int32_t session_id,
+    int32_t user_id,
+    const std::vector<uint8_t>& communication_secret_key,
+    int32_t device_id
+) {
+    std::vector<uint8_t> buf(4, 0);
+    Writer w(buf);
+
+    w.u32(device_id);
+    
+    std::vector<uint8_t> header = build_header(buf.size(), CMD_DEVICE_QUERY, session_id, 1104, 0, 1, 0, user_id, false);
+
+    std::vector<uint8_t> packet = header;
+    packet.insert(packet.end(), buf.begin(), buf.end());
+
+    std::vector<uint8_t> crc = get_complete_legal_crc(packet, communication_secret_key);
+    packet.insert(packet.end(), crc.begin(), crc.end());
+
+    return packet;
+}
+
 
 } // namespace e7_switcher

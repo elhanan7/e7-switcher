@@ -17,4 +17,8 @@ void E7Client::control_device(const std::string& device_name, const std::string&
     conn_.control_device(device_name, action);
 }
 
+LightStatus E7Client::get_light_status(const std::string& device_name) {
+    return conn_.get_light_status(device_name);
+}
+
 } // namespace e7_switcher

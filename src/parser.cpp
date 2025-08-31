@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "parser.h"
 #include <stdexcept>
 #include <arpa/inet.h>
@@ -135,6 +136,44 @@ ProtocolPacket parse_protocol_packet(const std::vector<uint8_t>& payload) {
     packet.crc = std::vector<uint8_t>(payload.begin() + packet.length - crc_size, payload.begin() + packet.length);
 
     return packet;
+}
+
+std::string LightStatus::to_string() const {
+    std::string result;
+    result += "{ wifi_power: " + std::to_string(wifi_power) + ", ";
+    result += "  switch_state: " + std::to_string(switch_state) + ", ";
+    result += "  remaining_time: " + std::to_string(remaining_time) + ", ";
+    result += "  open_time: " + std::to_string(open_time) + ", ";
+    result += "  auto_closing_time: " + std::to_string(auto_closing_time) + ", ";
+    result += "  is_delay: " + std::to_string(is_delay) + ", ";
+    result += "  online_state: " + std::to_string(online_state) + " }";
+    return result;
+}
+
+LightStatus parse_light_status(const std::vector<uint8_t>& payload) {
+    Serial.printf("Parsing light status from %d bytes\n", payload.size());
+    Reader r(payload);
+    r.take(2); // original cmd
+    r.take(2); // original serial
+    r.take(4); // original timestamp
+    r.take(1); // needs to be 0 or 3
+    r.take(2); // length of rest of payload
+
+    r.take(32); // device name
+
+    LightStatus status;
+    status.online_state = r.u8();
+    
+    r.take(2); // length of status bytes
+
+    status.wifi_power = r.u8();
+    status.switch_state = r.u8();
+    status.remaining_time = r.u32();
+    status.open_time = r.u32();
+    status.auto_closing_time = r.u32();
+    status.is_delay = r.u8();
+
+    return status;
 }
 
 } // namespace e7_switcher

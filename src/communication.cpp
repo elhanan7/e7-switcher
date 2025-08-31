@@ -163,4 +163,20 @@ ProtocolPacket E7Connection::control_device(const std::string& device_name, cons
     return parse_protocol_packet(response);
 }
 
+LightStatus E7Connection::get_light_status(const std::string& device_name) {
+    std::vector<Device> devices = get_device_list();
+    auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) {
+        return d.name == device_name;
+    });
+
+    if (it == devices.end()) {
+        throw std::runtime_error("Device not found");
+    }
+
+    std::vector<uint8_t> query_packet = build_device_query_payload(session_id_, user_id_, communication_secret_key_, it->did);
+    send_and_receive(query_packet); // ignore (ack) response
+    std::vector<uint8_t> response = receive();
+    std::vector<uint8_t> payload = parse_protocol_packet(response).payload;
+    return parse_light_status(response);
+}
 } // namespace e7_switcher

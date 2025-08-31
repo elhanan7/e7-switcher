@@ -70,6 +70,21 @@ struct ProtocolPacket {
     std::vector<uint8_t> crc;
 };
 
+struct LightStatus {
+    int wifi_power;
+    bool switch_state;
+    int remaining_time;
+    int open_time;
+    int auto_closing_time;
+    bool is_delay;
+    int online_state;
+
+    std::string to_string() const;
+};
+
+
 ProtocolPacket parse_protocol_packet(const std::vector<uint8_t>& payload);
+
+LightStatus parse_light_status(const std::vector<uint8_t>& payload);
 
 } // namespace e7_switcher

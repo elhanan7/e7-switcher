@@ -46,6 +46,15 @@ void doAssurActionIfNeeded(bool isAssur) {
   Serial.println("[assur] Control command sent.");
 }
 
+
+void printDeviceStatus() {
+  e7_switcher::E7Client client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
+  e7_switcher::LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
+
+  Serial.printf("Device status: %s\n", status.to_string().c_str());
+
+}
+
 // Timing
 const unsigned long CHECK_INTERVAL_MS = 8UL * 60UL * 1000UL;  // every 8 minutes
 const unsigned long BLINK_INTERVAL_MS = 1000UL;               // 1 Hz blink when not assur
@@ -110,6 +119,7 @@ void setup() {
   // If assur at boot, perform action now
   // doAssurActionIfNeeded(isAssur);
   doAssurActionIfNeeded(true);
+  printDeviceStatus();
 
   lastCheckMs = millis();
   lastBlinkMs = millis();
