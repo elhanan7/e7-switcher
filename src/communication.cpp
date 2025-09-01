@@ -4,7 +4,9 @@
 #include "parser.h"
 #include "crypto.h"
 #include "base64_decode.h"
-#include <ArduinoJson.h>
+#include "logger.h"
+#include "json_helpers.h"
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -80,7 +82,7 @@ PhoneLoginRecord E7Connection::login(const std::string& account, const std::stri
     session_id_ = login_data.session_id;
     user_id_ = login_data.user_id;
     communication_secret_key_ = login_data.communication_secret_key;
-    Serial.printf("Phone login successful with session ID: %d\n", login_data.session_id);
+    Logger::instance().infof("Phone login successful with session ID: %d", login_data.session_id);
     return login_data;
 }
 
@@ -96,32 +98,19 @@ std::vector<Device> E7Connection::get_device_list() {
     std::string json_str = payload_str.substr(start, end - start + 1);
     json_str.erase(std::remove(json_str.begin(), json_str.end(), '\0'), json_str.end());
 
-    JsonDocument doc;
-    deserializeJson(doc, json_str);
-    JsonArray dev_list = doc["DevList"].as<JsonArray>();
-
     std::vector<Device> devices;
-    for (JsonObject item : dev_list) {
-        Device dev;
-        dev.name     = item["DeviceName"].as<std::string>();
-        dev.ssid     = item["APSSID"].as<std::string>();
-        dev.mac      = item["DMAC"].as<std::string>();
-        dev.type     = item["DeviceType"].as<std::string>();
-        dev.firmware = item["FirmwareMark"].as<std::string>() + " " + item["FirmwareVersion"].as<std::string>();
-        dev.online   = item["OnlineStatus"].as<int>() == 1;
-        dev.line_no  = item["LineNo"].as<int>();
-        dev.line_type= item["LineType"].as<int>();
-        dev.did      = item["DID"].as<int>();
-        dev.visit_pwd= item["VisitPwd"].as<std::string>();
-        devices.push_back(dev);
+    if (!extract_device_list(json_str, devices)) {
+        Logger::instance().error("Failed to extract device list from JSON");
+        throw std::runtime_error("Failed to extract device list from JSON");
     }
+    
     return devices;
 }
 
 ProtocolMessage E7Connection::control_device(const std::string& device_name, const std::string& action) {
-    Serial.printf("Start of control_device\n");
+    Logger::instance().debug("Start of control_device");
     std::vector<Device> devices = get_device_list();
-    Serial.printf("Got device list\n");
+    Logger::instance().debug("Got device list");
     auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
     if (it == devices.end()) throw std::runtime_error("Device not found");
 
@@ -135,14 +124,14 @@ ProtocolMessage E7Connection::control_device(const std::string& device_name, con
     std::vector<uint8_t> control_packet = build_device_control_payload(
         session_id_, user_id_, communication_secret_key_, it->did, dec_pwd_bytes, on_or_off);
 
-    Serial.printf("Sending control command to \"%s\"...\n", device_name.c_str());
+    Logger::instance().infof("Sending control command to \"%s\"...", device_name.c_str());
     stream_.send_message(control_packet);                 // send
     (void)stream_.receive_message();  // ignore ack, but drain it
-    Serial.printf("Control command sent to \"%s\"\n", device_name.c_str());
+    Logger::instance().infof("Control command sent to \"%s\"", device_name.c_str());
 
     // async status response
     ProtocolMessage response = stream_.receive_message();
-    Serial.printf("Received response from \"%s\"\n", device_name.c_str());
+    Logger::instance().infof("Received response from \"%s\"", device_name.c_str());
     return response;
 }
 

@@ -1,9 +1,16 @@
+#if defined(ARDUINO) || defined(ESP_PLATFORM) || defined(ESP32) || defined(ESP8266)
+#define E7_PLATFORM_ESP 1
 #include <Arduino.h>
+#else
+#define E7_PLATFORM_DESKTOP 1
+// Desktop platform - no Arduino headers needed
+#endif
 #include "packets.h"
 #include "constants.h"
 #include "crc.h"
 #include "crypto.h"
 #include "time_utils.h"
+#include "logger.h"
 #include <vector>
 #include <string>
 #include <cstring>
@@ -168,7 +175,8 @@ std::vector<uint8_t> build_device_control_payload(
     const std::vector<uint8_t>& device_pwd,
     int on_or_off
 ) {
-    Serial.printf("Building device control packet for device %d\n", device_id);
+    auto& logger = e7_switcher::Logger::instance();
+    logger.debugf("Building device control packet for device %d", device_id);
     std::vector<uint8_t> buf(49, 0);
     Writer w(buf);
 
@@ -179,8 +187,8 @@ std::vector<uint8_t> build_device_control_payload(
     padded_pwd.resize(32, 0);
     std::vector<uint8_t> encrypted_pwd = encrypt_to_hex_ecb_pkcs7(padded_pwd, AES_KEY_NATIVE);
     encrypted_pwd.resize(32);
-    Serial.printf("Encrypted password: %s\n", encrypted_pwd.data());
-    Serial.printf("Ecnrypted password length: %d\n", encrypted_pwd.size());
+    logger.debugf("Encrypted password: %s", encrypted_pwd.data());
+    logger.debugf("Encrypted password length: %d", encrypted_pwd.size());
     w.put(encrypted_pwd);
 
     w.u8(0x0A);
@@ -197,7 +205,7 @@ std::vector<uint8_t> build_device_control_payload(
 
     std::vector<uint8_t> crc = get_complete_legal_crc(packet, communication_secret_key);
     packet.insert(packet.end(), crc.begin(), crc.end());
-    Serial.printf("Built device control packet for device %d\n", device_id);
+    logger.debugf("Built device control packet for device %d", device_id);
 
     return packet;
 }

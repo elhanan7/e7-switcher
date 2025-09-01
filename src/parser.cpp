@@ -1,5 +1,12 @@
+#if defined(ARDUINO) || defined(ESP_PLATFORM) || defined(ESP32) || defined(ESP8266)
+#define E7_PLATFORM_ESP 1
 #include <Arduino.h>
+#else
+#define E7_PLATFORM_DESKTOP 1
+// Desktop platform - no Arduino headers needed
+#endif
 #include "parser.h"
+#include "logger.h"
 #include <stdexcept>
 #include <arpa/inet.h>
 #include <algorithm>
@@ -151,7 +158,8 @@ std::string LightStatus::to_string() const {
 }
 
 LightStatus parse_light_status(const std::vector<uint8_t>& payload) {
-    Serial.printf("Parsing light status from %d bytes\n", payload.size());
+    auto& logger = e7_switcher::Logger::instance();
+    logger.debugf("Parsing light status from %d bytes", payload.size());
     Reader r(payload);
     r.take(2); // original cmd
     r.take(2); // original serial

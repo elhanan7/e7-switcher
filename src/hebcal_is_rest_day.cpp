@@ -1,5 +1,7 @@
 #include "hebcal_is_rest_day.h"
 
+#if defined(ARDUINO) || defined(ESP_PLATFORM) || defined(ESP32) || defined(ESP8266)
+#define E7_PLATFORM_ESP 1
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
@@ -78,3 +80,23 @@ std::optional<bool> hebcal_is_rest_day_in_jerusalem(const char* dtIsoOpt,
   return hebcal_is_rest_day_by_geoname_id(HEBCAL_JERUSALEM_GEONAMEID,
                                           dtIsoOpt, timeoutMs);
 }
+
+#else // Desktop implementation
+#define E7_PLATFORM_DESKTOP 1
+#include <string>
+#include <optional>
+
+// Desktop stub implementations - these functions will return std::nullopt on desktop
+std::optional<bool> hebcal_is_rest_day_by_geoname_id(int geonameId,
+                                       const char* dtIsoOpt,
+                                       uint32_t timeoutMs) {
+  // Desktop stub implementation - always returns std::nullopt
+  return std::nullopt;
+}
+
+std::optional<bool> hebcal_is_rest_day_in_jerusalem(const char* dtIsoOpt,
+                                    uint32_t timeoutMs) {
+  // Desktop stub implementation - always returns std::nullopt
+  return std::nullopt;
+}
+#endif

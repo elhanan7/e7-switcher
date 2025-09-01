@@ -1,3 +1,5 @@
+#ifdef E7_PLATFORM_ESP
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <mbedtls/aes.h>
@@ -6,10 +8,11 @@
 #include "communication.h"   // Device struct
 #include "hebcal_is_rest_day.h"
 #include "secrets.h"
+#include "logger.h"
 
 const char *tz             = "IST-2IDT,M3.4.4/26,M10.5.0";
 
-// If your board’s LED is different, change these:
+// If your board's LED is different, change these:
 const int  LED_PIN         = 2;      // Blue LED on many ESP32 devkits
 const bool LED_ACTIVE_HIGH = true;   // Set to false if your LED is active-low
 // ===========================
@@ -34,25 +37,27 @@ bool ensureWifi(uint32_t timeout_ms = 10000) {
 void do_rest_day_action_if_needed(bool is_rest_day) {
   if (!is_rest_day) return;
 
+  auto& logger = e7_switcher::Logger::instance();
+  
   if (!ensureWifi()) {
-    Serial.println("[rest_day] WiFi not connected, skipping control command.");
+    logger.warning("[rest_day] WiFi not connected, skipping control command.");
     return;
   }
 
   // Create a new client each 8-minute cycle and send ON
   e7_switcher::E7Client client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
-  Serial.printf("[rest_day] Sending ON to \"%s\"...\n", E7_SWITCHER_DEVICE_NAME);
+  logger.infof("[rest_day] Sending ON to \"%s\"...", E7_SWITCHER_DEVICE_NAME);
   client.control_device(E7_SWITCHER_DEVICE_NAME, "on");
-  Serial.println("[rest_day] Control command sent.");
+  logger.info("[rest_day] Control command sent.");
 }
 
 
 void print_device_status() {
+  auto& logger = e7_switcher::Logger::instance();
   e7_switcher::E7Client client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
   e7_switcher::LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
 
-  Serial.printf("Device status: %s\n", status.to_string().c_str());
-
+  logger.infof("Device status: %s", status.to_string().c_str());
 }
 
 const int E7_AUTOSHUTDOWN_TIME_SECONDS = 40 * 60;
@@ -64,6 +69,7 @@ bool status_initialized = false;
 
 // Returns milliseconds until next check is needed
 unsigned long handle_auto_shutdown() {
+    auto& logger = e7_switcher::Logger::instance();
     e7_switcher::E7Client client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
     e7_switcher::LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
     
@@ -71,19 +77,19 @@ unsigned long handle_auto_shutdown() {
     last_known_status = status;
     status_initialized = true;
     
-    Serial.printf("Device status: %s\n", status.to_string().c_str());
+    logger.infof("Device status: %s", status.to_string().c_str());
 
     if (status.switch_state == 0) {
       // Light is off, check again in a bit less than auto-shutdown time for safety (85% of the time)
       unsigned long check_interval_ms = (unsigned long)(E7_AUTOSHUTDOWN_TIME_SECONDS * 0.85) * 1000UL;
-      Serial.printf("[auto shutdown] Light is off, will check again in %lu seconds\n", check_interval_ms / 1000UL);
+      logger.infof("[auto shutdown] Light is off, will check again in %lu seconds", check_interval_ms / 1000UL);
       return check_interval_ms;
     }
 
     if (status.open_time > E7_AUTOSHUTDOWN_TIME_SECONDS) {
-      Serial.printf("[auto shutdown] Sending OFF to \"%s\"...\n", E7_SWITCHER_DEVICE_NAME);
+      logger.infof("[auto shutdown] Sending OFF to \"%s\"...", E7_SWITCHER_DEVICE_NAME);
       client.control_device(E7_SWITCHER_DEVICE_NAME, "off");
-      Serial.println("[auto shutdown] Control command sent.");
+      logger.info("[auto shutdown] Control command sent.");
       // Check again in 30 seconds to confirm it turned off
       return 30UL * 1000UL;
     } else {
@@ -94,7 +100,7 @@ unsigned long handle_auto_shutdown() {
                                    (seconds_remaining - 10) * 1000UL : 
                                    10UL * 1000UL; // Minimum 10 seconds
       
-      Serial.printf("[auto shutdown] Light on for %d seconds, will check again in %lu seconds\n", 
+      logger.infof("[auto shutdown] Light on for %d seconds, will check again in %lu seconds", 
                    status.open_time, next_check_ms / 1000UL);
       
       return next_check_ms;
@@ -113,47 +119,50 @@ unsigned long last_auto_shutdown_ms = 0;
 bool is_rest_day = false;
 bool blink_state = false;
 
-// Fail compilation if secrets.h isn’t filled in
+// Fail compilation if secrets.h isn't filled in
 static_assert(std::string_view{E7_SWITCHER_ACCOUNT} != "REPLACE_ME", "E7_SWITCHER_ACCOUNT is REPLACE_ME");
 static_assert(std::string_view{E7_SWITCHER_WIFI_SSID} != "REPLACE_ME", "E7_SWITCHER_PASSWORD is REPLACE_ME");
 
 void setup() {
   Serial.begin(115200);
   while (!Serial) { /* wait for native USB */ }
+  
+  // Initialize the logger
+  e7_switcher::Logger::initialize();
 
   pinMode(LED_PIN, OUTPUT);
   ledWrite(false);
 
-  Serial.println("Booting…");
-  Serial.printf("Connecting to WiFi SSID: %s\n", E7_SWITCHER_WIFI_SSID);
+  auto& logger = e7_switcher::Logger::instance();
+  logger.info("Booting…");
+  logger.infof("Connecting to WiFi SSID: %s", E7_SWITCHER_WIFI_SSID);
 
   WiFi.mode(WIFI_STA);
   ensureWifi();
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("WiFi connected. IP: ");
-    Serial.println(WiFi.localIP());
+    logger.infof("WiFi connected. IP: %s", WiFi.localIP().toString().c_str());
   } else {
-    Serial.println("WiFi not connected (will keep trying periodically).");
+    logger.warning("WiFi not connected (will keep trying periodically).");
   }
 
   configTzTime(tz, "pool.ntp.org");
 
-  // Initial time fetch (non-fatal if it fails; we’ll retry on each cycle)
+  // Initial time fetch (non-fatal if it fails; we'll retry on each cycle)
   struct tm timeinfo;
   if (getLocalTime(&timeinfo, 5000)) {
     char buf[32];
     strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &timeinfo);
-    Serial.printf("Current time: %s\n", buf);
+    logger.infof("Current time: %s", buf);
   } else {
-    Serial.println("Failed to obtain time (will retry later).");
+    logger.warning("Failed to obtain time (will retry later).");
   }
 
   // Initial rest_day check
   std::optional<bool> is_rest_day_opt = hebcal_is_rest_day_in_jerusalem();
   if (!is_rest_day_opt.has_value()) {
-    Serial.println("Failed to check rest day status (will retry later).");
+    logger.warning("Failed to check rest day status (will retry later).");
   } else {
-    Serial.printf("Initial is_rest_day: %s\n", is_rest_day_opt.value() ? "true" : "false");
+    logger.infof("Initial is_rest_day: %s", is_rest_day_opt.value() ? "true" : "false");
   }
 
   is_rest_day = is_rest_day_opt.value_or(false);
@@ -183,29 +192,30 @@ void loop() {
     last_rest_day_check_ms = now;
 
     // Keep Wi-Fi connected (non-blocking-ish with small timeout inside ensureWifi)
+    auto& logger = e7_switcher::Logger::instance();
     bool wifiOK = ensureWifi();
     if (wifiOK) {
-      Serial.printf("[cycle] WiFi OK. IP: %s\n", WiFi.localIP().toString().c_str());
+      logger.infof("[cycle] WiFi OK. IP: %s", WiFi.localIP().toString().c_str());
     } else {
-      Serial.println("[cycle] WiFi not connected.");
+      logger.warning("[cycle] WiFi not connected.");
       delay(1000);
       return;
     }
 
-    // Refresh time (helps if NTP hadn’t synced yet)
+    // Refresh time (helps if NTP hadn't synced yet)
     struct tm timeinfo;
     if (getLocalTime(&timeinfo, 3000)) {
       char buf[32];
       strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &timeinfo);
-      Serial.printf("[cycle] Time: %s\n", buf);
+      logger.infof("[cycle] Time: %s", buf);
     } else {
-      Serial.println("[cycle] Failed to obtain time.");
+      logger.warning("[cycle] Failed to obtain time.");
     }
 
     // Check is_rest_day status
     std::optional<bool> new_rest_day_status_opt = hebcal_is_rest_day_in_jerusalem();
     bool new_is_rest_day = new_rest_day_status_opt.value_or(false); // Assign value if present, else false
-    Serial.printf("[cycle] is_rest_day: %s\n", new_is_rest_day ? "true" : "false");
+    logger.infof("[cycle] is_rest_day: %s", new_is_rest_day ? "true" : "false");
 
     // If status changed, update LED behavior immediately
     if (new_is_rest_day != is_rest_day) {
@@ -247,10 +257,13 @@ void loop() {
       unsigned long next_check_interval = handle_auto_shutdown();
       next_status_check_ms = now + next_check_interval;
       
-      Serial.printf("[auto shutdown] Next check in %lu seconds\n", next_check_interval / 1000UL);
+      auto& logger = e7_switcher::Logger::instance();
+      logger.infof("[auto shutdown] Next check in %lu seconds", next_check_interval / 1000UL);
     }
   }
 
   // Small idle delay to keep loop snappy without busy-spinning
   delay(5);
 }
+
+#endif // E7_PLATFORM_ESP
