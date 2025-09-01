@@ -56,20 +56,48 @@ void print_device_status() {
 }
 
 const int E7_AUTOSHUTDOWN_TIME_SECONDS = 40 * 60;
-void handle_auto_shutdown() {
+
+// Variables to track light status and timing
+e7_switcher::LightStatus last_known_status;
+unsigned long next_status_check_ms = 0;
+bool status_initialized = false;
+
+// Returns milliseconds until next check is needed
+unsigned long handle_auto_shutdown() {
     e7_switcher::E7Client client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
     e7_switcher::LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
-
+    
+    // Store the latest status
+    last_known_status = status;
+    status_initialized = true;
+    
     Serial.printf("Device status: %s\n", status.to_string().c_str());
 
     if (status.switch_state == 0) {
-      return; // already off
+      // Light is off, check again in a bit less than auto-shutdown time for safety (85% of the time)
+      unsigned long check_interval_ms = (unsigned long)(E7_AUTOSHUTDOWN_TIME_SECONDS * 0.85) * 1000UL;
+      Serial.printf("[auto shutdown] Light is off, will check again in %lu seconds\n", check_interval_ms / 1000UL);
+      return check_interval_ms;
     }
 
     if (status.open_time > E7_AUTOSHUTDOWN_TIME_SECONDS) {
       Serial.printf("[auto shutdown] Sending OFF to \"%s\"...\n", E7_SWITCHER_DEVICE_NAME);
       client.control_device(E7_SWITCHER_DEVICE_NAME, "off");
       Serial.println("[auto shutdown] Control command sent.");
+      // Check again in 30 seconds to confirm it turned off
+      return 30UL * 1000UL;
+    } else {
+      // Calculate time remaining until shutdown needed
+      int seconds_remaining = E7_AUTOSHUTDOWN_TIME_SECONDS - status.open_time;
+      // Add a small buffer (10 seconds) to ensure we don't check too late
+      unsigned long next_check_ms = (seconds_remaining > 10) ? 
+                                   (seconds_remaining - 10) * 1000UL : 
+                                   10UL * 1000UL; // Minimum 10 seconds
+      
+      Serial.printf("[auto shutdown] Light on for %d seconds, will check again in %lu seconds\n", 
+                   status.open_time, next_check_ms / 1000UL);
+      
+      return next_check_ms;
     }
 }
 
@@ -145,6 +173,7 @@ void setup() {
   last_auto_shutdown_ms = millis();
   last_blink_ms = last_auto_shutdown_ms;
   last_rest_day_check_ms = last_auto_shutdown_ms;
+  next_status_check_ms = last_auto_shutdown_ms; // Initialize next check time
 }
 
 void loop() {
@@ -211,10 +240,14 @@ void loop() {
   // auto-shutdown
   if (!is_rest_day)
   {
-    if (now - last_auto_shutdown_ms >= AUTO_SHUTDOWN_INTERVAL_MS)
+    // Check if it's time to query the light status
+    if (!status_initialized || now >= next_status_check_ms)
     {
       last_auto_shutdown_ms = now;
-      handle_auto_shutdown();
+      unsigned long next_check_interval = handle_auto_shutdown();
+      next_status_check_ms = now + next_check_interval;
+      
+      Serial.printf("[auto shutdown] Next check in %lu seconds\n", next_check_interval / 1000UL);
     }
   }
 
