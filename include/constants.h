@@ -18,7 +18,6 @@ const char* const IP_HUB = "47.91.75.117";
 constexpr int PORT_HUB = 9091;
 
 // AES configuration
-const char* const AES_KEY_ORIGINAL = "OGE201601234567890123456";
 const char* const AES_KEY_2_50 = "OGEseetime201800";
 const char* const AES_KEY_NATIVE = "OGE201600000000000000000";
 

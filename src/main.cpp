@@ -31,7 +31,7 @@ bool ensureWifi(uint32_t timeout_ms = 10000) {
   return WiFi.status() == WL_CONNECTED;
 }
 
-void do_rest_day_action_if_neede(bool isAssur) {
+void do_rest_day_action_if_needed(bool isAssur) {
   if (!isAssur) return;
 
   if (!ensureWifi()) {
@@ -139,8 +139,7 @@ void setup() {
   }
 
   // If assur at boot, perform action now
-  // doAssurActionIfNeeded(isAssur);
-  do_rest_day_action_if_neede(true);
+  do_rest_day_action_if_needed(true);
   print_device_status();
 
   last_auto_shutdown_ms = millis();
@@ -195,7 +194,7 @@ void loop() {
     }
 
     // Do the control action if assur
-    do_rest_day_action_if_neede(is_rest_day);
+    do_rest_day_action_if_needed(is_rest_day);
   }
 
   // 2) LED behavior: solid when assur; 1 Hz blink when not assur

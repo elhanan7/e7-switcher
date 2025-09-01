@@ -177,7 +177,6 @@ std::vector<uint8_t> build_device_control_payload(
     
     std::vector<uint8_t> padded_pwd = device_pwd;
     padded_pwd.resize(32, 0);
-    Serial.printf("Abbout to encrypt password: %s\n", padded_pwd.data());
     std::vector<uint8_t> encrypted_pwd = encrypt_to_hex_ecb_pkcs7(padded_pwd, AES_KEY_NATIVE);
     encrypted_pwd.resize(32);
     Serial.printf("Encrypted password: %s\n", encrypted_pwd.data());
