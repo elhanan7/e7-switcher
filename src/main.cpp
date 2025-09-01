@@ -31,19 +31,19 @@ bool ensureWifi(uint32_t timeout_ms = 10000) {
   return WiFi.status() == WL_CONNECTED;
 }
 
-void do_rest_day_action_if_needed(bool isAssur) {
-  if (!isAssur) return;
+void do_rest_day_action_if_needed(bool is_rest_day) {
+  if (!is_rest_day) return;
 
   if (!ensureWifi()) {
-    Serial.println("[assur] WiFi not connected, skipping control command.");
+    Serial.println("[rest_day] WiFi not connected, skipping control command.");
     return;
   }
 
   // Create a new client each 8-minute cycle and send ON
   e7_switcher::E7Client client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
-  Serial.printf("[assur] Sending ON to \"%s\"...\n", E7_SWITCHER_DEVICE_NAME);
+  Serial.printf("[rest_day] Sending ON to \"%s\"...\n", E7_SWITCHER_DEVICE_NAME);
   client.control_device(E7_SWITCHER_DEVICE_NAME, "on");
-  Serial.println("[assur] Control command sent.");
+  Serial.println("[rest_day] Control command sent.");
 }
 
 
@@ -75,7 +75,7 @@ void handle_auto_shutdown() {
 
 // Timing
 const unsigned long REST_DAY_INTERVAL_MS = 10UL * 60UL * 1000UL;  // every 10 minutes
-const unsigned long BLINK_INTERVAL_MS = 1000UL;               // 1 Hz blink when not assur
+const unsigned long BLINK_INTERVAL_MS = 1000UL;               // 1 Hz blink when not rest_day
 const unsigned long AUTO_SHUTDOWN_INTERVAL_MS = 2UL * 60UL * 1000UL; // every 2 minutes
 
 unsigned long last_rest_day_check_ms = 0;
@@ -120,7 +120,7 @@ void setup() {
     Serial.println("Failed to obtain time (will retry later).");
   }
 
-  // Initial assur check
+  // Initial rest_day check
   std::optional<bool> is_rest_day_opt = hebcal_is_rest_day_in_jerusalem();
   if (!is_rest_day_opt.has_value()) {
     Serial.println("Failed to check rest day status (will retry later).");
@@ -138,7 +138,7 @@ void setup() {
     ledWrite(false);    // start blink from OFF
   }
 
-  // If assur at boot, perform action now
+  // If rest_day at boot, perform action now
   do_rest_day_action_if_needed(true);
   print_device_status();
 
@@ -193,11 +193,11 @@ void loop() {
       is_rest_day = new_is_rest_day;
     }
 
-    // Do the control action if assur
+    // Do the control action if rest_day
     do_rest_day_action_if_needed(is_rest_day);
   }
 
-  // 2) LED behavior: solid when assur; 1 Hz blink when not assur
+  // 2) LED behavior: solid when rest_day; 1 Hz blink when not rest_day
   if (is_rest_day) {
     ledWrite(true);  // make sure it stays solid on
   } else {

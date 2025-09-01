@@ -1,8 +1,8 @@
 #pragma once
 /*
- * hebcal_assur.h
+ * hebcal_is_rest_day.h
  *
- * One-shot check for "Assur Melacha" (Shabbat or Yom Tov) via Hebcal Zmanim API.
+ * One-shot check for rest day (Shabbat or Yom Tov) via Hebcal Zmanim API.
  * Uses ArduinoJson instead of nlohmann/json.hpp.
  *
  * Requirements (ESP32 Arduino):
