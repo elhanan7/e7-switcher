@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(e7_switcher)
+project(e7-switcher)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,10 +18,10 @@ find_package(nlohmann_json 3.11.2 REQUIRED)
 file(GLOB SOURCES "src/*.cpp")
 
 # Create executable
-add_executable(e7_switcher ${SOURCES})
+add_executable(e7-switcher ${SOURCES})
 
 # Link libraries
-target_link_libraries(e7_switcher 
+target_link_libraries(e7-switcher 
     OpenSSL::SSL
     OpenSSL::Crypto
     nlohmann_json::nlohmann_json

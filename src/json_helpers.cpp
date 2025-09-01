@@ -24,7 +24,7 @@ bool extract_device_list(const std::string& json_str, std::vector<Device>& devic
         return false;
     }
     
-    if (!doc.containsKey("DevList")) {
+    if (!doc["DevList"].is<JsonArray>()) {
         return false;
     }
     
@@ -57,7 +57,7 @@ bool extract_is_rest_day(const std::string& json_str, bool& is_rest_day) {
         return false;
     }
     
-    if (!doc.containsKey("IsRestDay")) {
+    if (!doc["IsRestDay"].is<int>()) {
         return false;
     }
     
