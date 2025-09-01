@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdint>
 #include <string>
+#include "parser.h"
 
 namespace e7_switcher {
 
@@ -17,7 +18,7 @@ public:
 
     // Send/receive methods
     void send_message(const std::vector<uint8_t>& data);
-    std::vector<uint8_t> receive_message(int timeout_ms = 15000); // long, per-call timeout
+    ProtocolMessage receive_message(int timeout_ms = 15000); // long, per-call timeout
 
 private:
     // Stream helpers

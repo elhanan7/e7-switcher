@@ -105,8 +105,8 @@ PhoneLoginRecord parse_phone_login(const std::vector<uint8_t>& payload) {
     return rec;
 }
 
-ProtocolPacket parse_protocol_packet(const std::vector<uint8_t>& payload) {
-    ProtocolPacket packet;
+ProtocolMessage parse_protocol_packet(const std::vector<uint8_t>& payload) {
+    ProtocolMessage packet;
     Reader r(payload);
 
     packet.start_flag = r.u16();

@@ -1,5 +1,6 @@
 #include "stream_message.h"
 #include "constants.h"
+#include "parser.h"
 #include <sys/socket.h>
 #include <unistd.h>
 #include <stdexcept>
@@ -39,7 +40,7 @@ void StreamMessage::send_message(const std::vector<uint8_t>& data) {
     }
 }
 
-std::vector<uint8_t> StreamMessage::receive_message(int timeout_ms) {
+ProtocolMessage StreamMessage::receive_message(int timeout_ms) {
     if (sock_ == -1) throw std::runtime_error("Not connected");
 
     // Temporarily extend SO_RCVTIMEO for this call; restore after.
@@ -56,7 +57,7 @@ std::vector<uint8_t> StreamMessage::receive_message(int timeout_ms) {
     if (try_extract_one_packet(out)) {
         // Restore old timeout and return
         setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&oldtv, sizeof oldtv);
-        return out;
+        return parse_protocol_packet(out);
     }
 
     // Keep reading until a full packet is available or timeout hits
@@ -78,7 +79,7 @@ std::vector<uint8_t> StreamMessage::receive_message(int timeout_ms) {
 
         if (try_extract_one_packet(out)) {
             setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&oldtv, sizeof oldtv);
-            return out;
+            return parse_protocol_packet(out);
         }
         // otherwise, loop to read more bytes
     }

@@ -32,7 +32,7 @@ public:
 
     PhoneLoginRecord login(const std::string& account, const std::string& password);
     std::vector<Device> get_device_list(); 
-    ProtocolPacket control_device(const std::string& device_name, const std::string& action);
+    ProtocolMessage control_device(const std::string& device_name, const std::string& action);
     LightStatus get_light_status(const std::string& device_name);
 
 private:

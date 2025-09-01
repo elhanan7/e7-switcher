@@ -53,7 +53,7 @@ struct PhoneLoginRecord {
 
 PhoneLoginRecord parse_phone_login(const std::vector<uint8_t>& payload);
 
-struct ProtocolPacket {
+struct ProtocolMessage {
     uint16_t start_flag;
     uint16_t length;
     uint16_t version;
@@ -83,7 +83,7 @@ struct LightStatus {
 };
 
 
-ProtocolPacket parse_protocol_packet(const std::vector<uint8_t>& payload);
+ProtocolMessage parse_protocol_packet(const std::vector<uint8_t>& payload);
 
 LightStatus parse_light_status(const std::vector<uint8_t>& payload);
 

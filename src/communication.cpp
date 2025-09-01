@@ -73,10 +73,8 @@ void E7Connection::close() {
 PhoneLoginRecord E7Connection::login(const std::string& account, const std::string& password) {
     std::vector<uint8_t> login_packet = build_login_payload(account, password);
     stream_.send_message(login_packet);
-    std::vector<uint8_t> response = stream_.receive_message();
-
-    ProtocolPacket parsed_response = parse_protocol_packet(response);
-    std::vector<uint8_t> decrypted_payload = decrypt_hex_ecb_pkcs7(parsed_response.payload, AES_KEY_2_50);
+    ProtocolMessage received_message = stream_.receive_message();
+    std::vector<uint8_t> decrypted_payload = decrypt_hex_ecb_pkcs7(received_message.payload, AES_KEY_2_50);
     PhoneLoginRecord login_data = parse_phone_login(decrypted_payload);
 
     session_id_ = login_data.session_id;
@@ -89,10 +87,8 @@ PhoneLoginRecord E7Connection::login(const std::string& account, const std::stri
 std::vector<Device> E7Connection::get_device_list() {
     std::vector<uint8_t> pkt = build_device_list_payload(session_id_, user_id_, communication_secret_key_);
     stream_.send_message(pkt);
-    std::vector<uint8_t> response = stream_.receive_message();
-
-    ProtocolPacket parsed_response = parse_protocol_packet(response);
-    std::string payload_str(parsed_response.payload.begin(), parsed_response.payload.end());
+    ProtocolMessage received_message = stream_.receive_message();
+    std::string payload_str(received_message.payload.begin(), received_message.payload.end());
     size_t start = payload_str.find("{");
     size_t end   = payload_str.rfind("}");
     if (start == std::string::npos || end == std::string::npos || end <= start)
@@ -122,7 +118,7 @@ std::vector<Device> E7Connection::get_device_list() {
     return devices;
 }
 
-ProtocolPacket E7Connection::control_device(const std::string& device_name, const std::string& action) {
+ProtocolMessage E7Connection::control_device(const std::string& device_name, const std::string& action) {
     Serial.printf("Start of control_device\n");
     std::vector<Device> devices = get_device_list();
     Serial.printf("Got device list\n");
@@ -145,9 +141,9 @@ ProtocolPacket E7Connection::control_device(const std::string& device_name, cons
     Serial.printf("Control command sent to \"%s\"\n", device_name.c_str());
 
     // async status response
-    std::vector<uint8_t> response = stream_.receive_message();
+    ProtocolMessage response = stream_.receive_message();
     Serial.printf("Received response from \"%s\"\n", device_name.c_str());
-    return parse_protocol_packet(response);
+    return response;
 }
 
 LightStatus E7Connection::get_light_status(const std::string& device_name) {
@@ -162,10 +158,9 @@ LightStatus E7Connection::get_light_status(const std::string& device_name) {
 
     stream_.send_message(query_packet);
     (void)stream_.receive_message(); // drain ack
-    std::vector<uint8_t> response = stream_.receive_message();
+    ProtocolMessage response = stream_.receive_message();
 
-    std::vector<uint8_t> payload = parse_protocol_packet(response).payload;
-    return parse_light_status(payload);
+    return parse_light_status(response.payload);
 }
 
 } // namespace e7_switcher
