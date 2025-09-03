@@ -4,6 +4,7 @@
 #include <string>
 #include <cstdint>
 #include <map>
+#include "data_structures.h"
 
 namespace e7_switcher {
 
@@ -50,18 +51,6 @@ struct ProtocolMessage {
     std::vector<uint8_t> raw_header;
     std::vector<uint8_t> payload;
     std::vector<uint8_t> crc;
-};
-
-struct LightStatus {
-    int wifi_power;
-    bool switch_state;
-    int remaining_time;
-    int open_time;
-    int auto_closing_time;
-    bool is_delay;
-    int online_state;
-
-    std::string to_string() const;
 };
 
 

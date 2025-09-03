@@ -5,21 +5,9 @@
 #include <cstdint>
 #include "parser.h"
 #include "stream_message.h"
+#include "data_structures.h"
 
 namespace e7_switcher {
-
-struct Device {
-    std::string name;
-    std::string ssid;
-    std::string mac;
-    std::string type;
-    std::string firmware;
-    bool online;
-    int line_no;
-    int line_type;
-    int did;
-    std::string visit_pwd;
-};
 
 class E7Connection {
 public:

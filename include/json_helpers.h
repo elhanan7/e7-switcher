@@ -2,7 +2,7 @@
 
 #include <string>
 #include <vector>
-#include "communication.h"  // For Device struct
+#include "data_structures.h"  // For Device struct
 #include "oge_ir_device_code.h"  // For OgeIRDeviceCode struct
 
 namespace e7_switcher {

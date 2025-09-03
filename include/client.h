@@ -1,6 +1,7 @@
 #pragma once
 
 #include "communication.h"
+#include "data_structures.h"
 #include <string>
 #include <vector>
 
