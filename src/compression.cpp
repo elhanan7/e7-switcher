@@ -1,5 +1,5 @@
 #include "compression.h"
-#include "miniz.h"
+#include <zlib.h>
 #include "logger.h"
 #include <stdexcept>
 
@@ -14,15 +14,15 @@ std::vector<uint8_t> compress_data(const std::vector<uint8_t>& data, int level) 
     
     // Ensure compression level is within valid range
     if (level < 0) level = 0;
-    if (level > 10) level = 10;
+    if (level > 9) level = 9;  // zlib uses 0-9 compression levels
     
     // Estimate the maximum compressed size (worst case)
-    size_t max_compressed_size = mz_compressBound(data.size());
+    uLong max_compressed_size = compressBound(data.size());
     std::vector<uint8_t> compressed_data(max_compressed_size);
     
     // Perform compression
-    mz_ulong compressed_size = max_compressed_size;
-    int status = mz_compress2(
+    uLongf compressed_size = max_compressed_size;
+    int status = compress2(
         compressed_data.data(), 
         &compressed_size, 
         data.data(), 
@@ -30,7 +30,7 @@ std::vector<uint8_t> compress_data(const std::vector<uint8_t>& data, int level) 
         level
     );
     
-    if (status != MZ_OK) {
+    if (status != Z_OK) {
         logger.errorf("Compression failed with status %d", status);
         throw std::runtime_error("Compression failed");
     }
@@ -45,52 +45,41 @@ std::vector<uint8_t> compress_data(const std::vector<uint8_t>& data, int level) 
 }
 
 std::vector<uint8_t> decompress_data(const std::vector<uint8_t>& compressed_data) {
-    if (compressed_data.empty()) {
-        return {};
+    auto src = compressed_data.data();
+    auto src_len = compressed_data.size();
+    if (!src || src_len == 0) {
+        throw std::runtime_error("Invalid input data");
     }
+    z_stream strm{};
+    strm.next_in  = const_cast<Bytef*>(src);
+    strm.avail_in = static_cast<uInt>(src_len);
 
-    auto& logger = Logger::instance();
-    
-    // Start with an estimated decompressed size
-    // This is a guess - we'll resize if needed
-    size_t decompressed_size = compressed_data.size() * 4;
-    std::vector<uint8_t> decompressed_data(decompressed_size);
-    
-    // Try to decompress
-    mz_ulong actual_size = decompressed_size;
-    int status = mz_uncompress(
-        decompressed_data.data(), 
-        &actual_size, 
-        compressed_data.data(), 
-        compressed_data.size()
-    );
-    
-    // If we didn't allocate enough space, try again with more space
-    if (status == MZ_BUF_ERROR) {
-        // Try with a much larger buffer
-        decompressed_size *= 4;
-        decompressed_data.resize(decompressed_size);
-        actual_size = decompressed_size;
-        
-        status = mz_uncompress(
-            decompressed_data.data(), 
-            &actual_size, 
-            compressed_data.data(), 
-            compressed_data.size()
-        );
-    }
-    
-    if (status != MZ_OK) {
-        logger.errorf("Decompression failed with status %d", status);
+    // 16 + 15 => accept gzip stream (GZIP header + max window)
+    // If you want auto zlib/gzip detection, use (32 + MAX_WBITS) instead.
+    int rc = inflateInit2(&strm, 16 + MAX_WBITS);
+    if (rc != Z_OK) {
         throw std::runtime_error("Decompression failed");
     }
-    
-    // Resize the output vector to the actual decompressed size
-    decompressed_data.resize(actual_size);
-    logger.debugf("Decompressed %zu bytes to %zu bytes", 
-                 compressed_data.size(), actual_size);
-    
-    return decompressed_data;
-}
 
+    std::string out;
+    std::vector<unsigned char> buf(64 * 1024);
+
+    int status = Z_OK;
+    while (status != Z_STREAM_END) {
+        strm.next_out  = buf.data();
+        strm.avail_out = static_cast<uInt>(buf.size());
+
+        status = inflate(&strm, Z_NO_FLUSH);
+        if (status != Z_OK && status != Z_STREAM_END) {
+            inflateEnd(&strm);
+            throw std::runtime_error("Decompression failed");
+        }
+
+        size_t produced = buf.size() - strm.avail_out;
+        out.append(reinterpret_cast<const char*>(buf.data()), produced);
+    }
+
+    inflateEnd(&strm);
+    return std::vector<uint8_t>(out.begin(), out.end());
+}
 } // namespace e7_switcher

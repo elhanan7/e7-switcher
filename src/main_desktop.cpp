@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
         logger.info("  ./switcher-e7 status                   - Get device status");
         logger.info("  ./switcher-e7 on                       - Turn device on");
         logger.info("  ./switcher-e7 off                      - Turn device off");
-        return 1;
+            return 1;
     }
     
     std::string command = argv[1];
@@ -48,6 +48,12 @@ int main(int argc, char* argv[]) {
             client.control_switch(E7_SWITCHER_DEVICE_NAME, "off");
             logger.info("Command sent successfully");
         } 
+        else if (command == "ac") {
+            logger.info("Getting AC IR config...");
+            client.get_ac_ir_config("AC");
+            client.get_ac_ir_config("Work AC");
+            logger.info("Command sent successfully");
+        }
         else {
             logger.warning("Unknown command. Use 'status', 'on', or 'off'");
             return 1;

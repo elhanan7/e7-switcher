@@ -5,6 +5,7 @@
 #include "crypto.h"
 #include "base64_decode.h"
 #include "logger.h"
+#include "compression.h"
 #include "json_helpers.h"
 
 #include <sys/socket.h>
@@ -17,6 +18,7 @@
 #include <thread>
 #include <chrono>
 #include <cstring>
+#include <cstdint>
 
 namespace e7_switcher {
 
@@ -77,30 +79,32 @@ PhoneLoginRecord E7SwitcherClient::login(const std::string& account, const std::
     return login_data;
 }
 
-std::vector<Device> E7SwitcherClient::list_devices() {
-    std::vector<uint8_t> pkt = build_device_list_payload(session_id_, user_id_, communication_secret_key_);
-    stream_.send_message(pkt);
-    ProtocolMessage received_message = stream_.receive_message();
-    std::string payload_str(received_message.payload.begin(), received_message.payload.end());
-    size_t start = payload_str.find("{");
-    size_t end   = payload_str.rfind("}");
-    if (start == std::string::npos || end == std::string::npos || end <= start)
-        throw std::runtime_error("No valid JSON found in response");
-    std::string json_str = payload_str.substr(start, end - start + 1);
-    json_str.erase(std::remove(json_str.begin(), json_str.end(), '\0'), json_str.end());
+const std::vector<Device>& E7SwitcherClient::list_devices() {
+    if (!devices_) {
+        std::vector<uint8_t> pkt = build_device_list_payload(session_id_, user_id_, communication_secret_key_);
+        stream_.send_message(pkt);
+        ProtocolMessage received_message = stream_.receive_message();
+        std::string payload_str(received_message.payload.begin(), received_message.payload.end());
+        size_t start = payload_str.find("{");
+        size_t end   = payload_str.rfind("}");
+        if (start == std::string::npos || end == std::string::npos || end <= start)
+            throw std::runtime_error("No valid JSON found in response");
+        std::string json_str = payload_str.substr(start, end - start + 1);
+        json_str.erase(std::remove(json_str.begin(), json_str.end(), '\0'), json_str.end());
 
-    std::vector<Device> devices;
-    if (!extract_device_list(json_str, devices)) {
-        Logger::instance().error("Failed to extract device list from JSON");
-        throw std::runtime_error("Failed to extract device list from JSON");
+        std::vector<Device> devices;
+        if (!extract_device_list(json_str, devices)) {
+            Logger::instance().error("Failed to extract device list from JSON");
+            throw std::runtime_error("Failed to extract device list from JSON");
+        }
+        devices_ = devices;
     }
-    
-    return devices;
+    return devices_.value();
 }
 
 void E7SwitcherClient::control_switch(const std::string& device_name, const std::string& action) {
     Logger::instance().debug("Start of control_device");
-    std::vector<Device> devices = list_devices();
+    const std::vector<Device>& devices = list_devices();
     Logger::instance().debug("Got device list");
     auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
     if (it == devices.end()) throw std::runtime_error("Device not found");
@@ -126,7 +130,7 @@ void E7SwitcherClient::control_switch(const std::string& device_name, const std:
 }
 
 LightStatus E7SwitcherClient::get_light_status(const std::string& device_name) {
-    std::vector<Device> devices = list_devices();
+    const std::vector<Device>& devices = list_devices();
     auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
     if (it == devices.end()) throw std::runtime_error("Device not found");
 
@@ -140,6 +144,46 @@ LightStatus E7SwitcherClient::get_light_status(const std::string& device_name) {
     ProtocolMessage response = stream_.receive_message();
 
     return parse_light_status(response.payload);
+}
+
+OgeIRDeviceCode E7SwitcherClient::get_ac_ir_config(const std::string &device_name)
+{
+    // Check if the device code is already in the cache
+    auto cache_it = ir_device_code_cache_.find(device_name);
+    if (cache_it != ir_device_code_cache_.end()) {
+        Logger::instance().infof("Using cached IR device code for \"%s\"", device_name.c_str());
+        return cache_it->second;
+    }
+
+    // Not in cache, fetch from server
+    Logger::instance().infof("Fetching IR device code for \"%s\"", device_name.c_str());
+    const std::vector<Device>& devices = list_devices();
+    auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
+    if (it == devices.end()) throw std::runtime_error("Device not found");
+
+    if (it->type != "0E01") throw std::runtime_error("Device type not supported");
+
+    std::string ac_code_id = parse_ac_status(it->work_status_bytes).code_id;
+
+    std::vector<uint8_t> query_packet = build_ac_ir_config_query_payload(
+        session_id_, user_id_, communication_secret_key_, it->did, ac_code_id);
+
+    stream_.send_message(query_packet);
+    ProtocolMessage response = stream_.receive_message();
+
+    // drop the first 3 bytes of the payload, to use as compressed data
+    std::vector<uint8_t> gz_data = response.payload;
+    gz_data.erase(gz_data.begin(), gz_data.begin() + 3);
+    std::vector<uint8_t> data = decompress_data(gz_data);
+    // convert to string
+    std::string data_str(data.begin(), data.end());
+    OgeIRDeviceCode irCodeResolver = parse_oge_ir_device_code(data_str);
+
+    // Store in cache for future use
+    ir_device_code_cache_[device_name] = irCodeResolver;
+    Logger::instance().infof("Cached IR device code for \"%s\"", device_name.c_str());
+
+    return irCodeResolver;
 }
 
 } // namespace e7_switcher

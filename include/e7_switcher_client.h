@@ -3,9 +3,11 @@
 #include "message_stream.h"
 #include "data_structures.h"
 #include "parser.h"
+#include "oge_ir_device_code.h"
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <unordered_map>
 
 namespace e7_switcher {
 
@@ -19,9 +21,10 @@ public:
     void close();
     
     // Device operations
-    std::vector<Device> list_devices();
+    const std::vector<Device>& list_devices();
     void control_switch(const std::string& device_name, const std::string& action);
     LightStatus get_light_status(const std::string& device_name);
+    OgeIRDeviceCode get_ac_ir_config(const std::string& device_name);
 
 private:
     // Connection properties
@@ -29,6 +32,7 @@ private:
     int port_;
     int timeout_;
     int sock_;
+    std::optional<std::vector<Device>> devices_;
     
     // Authentication properties
     int32_t session_id_;
@@ -37,6 +41,9 @@ private:
     
     // Stream message handler
     MessageStream stream_;
+    
+    // Cache for IR device codes
+    std::unordered_map<std::string, OgeIRDeviceCode> ir_device_code_cache_;
     
     // Internal methods
     PhoneLoginRecord login(const std::string& account, const std::string& password);

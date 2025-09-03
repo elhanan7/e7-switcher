@@ -192,4 +192,39 @@ LightStatus parse_light_status(const std::vector<uint8_t>& payload) {
     return status;
 }
 
+ACStatus parse_ac_status(const std::vector<uint8_t>& work_status_bytes)
+{
+    auto& logger = e7_switcher::Logger::instance();
+    logger.debugf("Parsing AC status from %d bytes", work_status_bytes.size());
+    
+    ACStatus status;
+    Reader r(work_status_bytes);
+    
+    if (work_status_bytes.size() != 32) {
+        logger.error("AC status payload size is not 32 bytes");
+        return status;
+    }
+    
+    status.wifi_power = r.u8();
+    status.temperature = r.u16();
+    status.ac_data = r.take(4);
+    status.temperature_unit = r.u8();
+    status.device_type = r.u8();
+    
+    // Read code ID (8 bytes string)
+    std::vector<uint8_t> code_id_bytes = r.take(8);
+    // Remove null bytes and convert to string
+    code_id_bytes.erase(std::remove(code_id_bytes.begin(), code_id_bytes.end(), '\0'), code_id_bytes.end());
+    status.code_id = std::string(code_id_bytes.begin(), code_id_bytes.end());
+    
+    // Check if online_state is 3 (this should be set before calling this function)
+    // For now, we'll assume it's not 3 and read the remaining fields
+    status.last_time = r.u32();
+    status.open_time = r.u32();
+    status.auto_closing_time = r.u32();
+    status.is_delay = r.u8() & 255;
+    
+    return status;
+}
+
 } // namespace e7_switcher

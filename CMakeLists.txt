@@ -13,6 +13,7 @@ include_directories(include)
 # Find required packages
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json 3.11.2 REQUIRED)
+find_package(ZLIB REQUIRED)
 
 # Source files
 file(GLOB SOURCES "src/*.cpp" "src/*.c")
@@ -25,4 +26,5 @@ target_link_libraries(e7-switcher
     OpenSSL::SSL
     OpenSSL::Crypto
     nlohmann_json::nlohmann_json
+    ZLIB::ZLIB
 )

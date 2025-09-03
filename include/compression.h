@@ -7,16 +7,16 @@
 namespace e7_switcher {
 
 /**
- * Compress data using the miniz library
+ * Compress data using the zlib library
  * 
  * @param data The data to compress
- * @param level Compression level (0-10, 0=no compression, 10=max compression)
+ * @param level Compression level (0-9, 0=no compression, 9=max compression)
  * @return Compressed data as a vector of bytes
  */
 std::vector<uint8_t> compress_data(const std::vector<uint8_t>& data, int level = 6);
 
 /**
- * Decompress data using the miniz library
+ * Decompress data using the zlib library
  * 
  * @param compressed_data The compressed data
  * @return Decompressed data as a vector of bytes

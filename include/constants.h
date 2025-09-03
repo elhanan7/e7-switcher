@@ -14,7 +14,7 @@ constexpr uint16_t PROTO_VER_3 = 0x0503;
 constexpr uint16_t MAGIC2 = 0xFEF0; // header[0x26:0x28] (LE -> f0 fe on wire)
 
 // Server configuration
-const char* const IP_HUB = "il-papi.ogemray-server.com";
+const char* const IP_HUB = "47.91.75.117";
 constexpr int PORT_HUB = 9091;
 
 // AES configuration
@@ -34,5 +34,6 @@ constexpr uint16_t CMD_DEVICE_LIST = 0x1343;
 constexpr uint16_t CMD_HEARTBEAT = 0x1517;
 constexpr uint16_t CMD_DEVICE_CONTROL = 0x0201;
 constexpr uint16_t CMD_DEVICE_QUERY = 0x0301;
+constexpr uint16_t CMD_AC_IR_CONFIG_QUERY = 0x1A04;
 
 } // namespace e7_switcher

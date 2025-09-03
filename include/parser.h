@@ -58,4 +58,6 @@ ProtocolMessage parse_protocol_packet(const std::vector<uint8_t>& payload);
 
 LightStatus parse_light_status(const std::vector<uint8_t>& payload);
 
+ACStatus parse_ac_status(const std::vector<uint8_t>& work_status_bytes);
+
 } // namespace e7_switcher

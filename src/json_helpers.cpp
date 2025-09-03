@@ -1,4 +1,5 @@
 #include "json_helpers.h"
+#include "base64_decode.h"
 #include <algorithm>
 #include <stdexcept>
 
@@ -43,6 +44,8 @@ bool extract_device_list(const std::string& json_str, std::vector<Device>& devic
         dev.line_type= item["LineType"].as<int>();
         dev.did      = item["DID"].as<int>();
         dev.visit_pwd= item["VisitPwd"].as<std::string>();
+        auto work_status_b64 = item["WorkStatus"].as<std::string>();
+        dev.work_status_bytes = base64_decode(work_status_b64);
         devices.push_back(dev);
     }
     
@@ -89,6 +92,8 @@ bool extract_device_list(const std::string& json_str, std::vector<Device>& devic
             dev.line_type= item["LineType"].get<int>();
             dev.did      = item["DID"].get<int>();
             dev.visit_pwd= item["VisitPwd"].get<std::string>();
+            auto work_status_b64 = item["WorkStatus"].get<std::string>();
+            dev.work_status_bytes = base64_decode(work_status_b64);
             devices.push_back(dev);
         }
         
@@ -274,5 +279,61 @@ OgeIRDeviceCode parse_oge_ir_device_code(const std::string& json_str) {
 }
 
 #endif
+
+std::string ACStatus::to_string() const {
+#ifdef E7_PLATFORM_ESP
+    // ESP32 implementation using ArduinoJson
+    JsonDocument doc;
+    
+    doc["wifi_power"] = wifi_power;
+    doc["temperature"] = temperature;
+    
+    // Convert ac_data bytes to hex string
+    char ac_data_hex[9]; // 4 bytes = 8 hex chars + null terminator
+    for (size_t i = 0; i < ac_data.size() && i < 4; i++) {
+        sprintf(&ac_data_hex[i*2], "%02x", ac_data[i]);
+    }
+    doc["ac_data"] = ac_data_hex;
+    
+    doc["temperature_unit"] = temperature_unit;
+    doc["device_type"] = device_type;
+    doc["code_id"] = code_id;
+    doc["last_time"] = last_time;
+    doc["open_time"] = open_time;
+    doc["auto_closing_time"] = auto_closing_time;
+    doc["is_delay"] = is_delay;
+    doc["online_state"] = online_state;
+    
+    std::string result;
+    serializeJson(doc, result);
+    return result;
+#else
+    // Linux/Mac implementation using nlohmann/json
+    json j;
+    
+    j["wifi_power"] = wifi_power;
+    j["temperature"] = temperature;
+    
+    // Convert ac_data bytes to hex string
+    std::string ac_data_hex;
+    for (auto byte : ac_data) {
+        char hex[3];
+        sprintf(hex, "%02x", byte);
+        ac_data_hex += hex;
+    }
+    j["ac_data"] = ac_data_hex;
+    
+    j["temperature_unit"] = temperature_unit;
+    j["device_type"] = device_type;
+    j["code_id"] = code_id;
+    j["last_time"] = last_time;
+    j["open_time"] = open_time;
+    j["auto_closing_time"] = auto_closing_time;
+    j["is_delay"] = is_delay;
+    j["online_state"] = online_state;
+    
+    return j.dump();
+#endif
+}
 
 } // namespace e7_switcher

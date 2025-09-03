@@ -250,5 +250,29 @@ std::vector<uint8_t> build_device_query_payload(
     return packet;
 }
 
+std::vector<uint8_t> build_ac_ir_config_query_payload(int32_t session_id, int32_t user_id, const std::vector<uint8_t> &communication_secret_key, int32_t device_id, std::string ac_code_id)
+{
+    std::vector<uint8_t> buf(16, 0);
+    Writer w(buf);
+
+    w.u32(user_id);
+    w.u32(device_id);
+
+    // convert ac_code_id to unit8_t vector
+    std::vector<uint8_t> ac_code_id_bytes(ac_code_id.begin(), ac_code_id.end());
+    ac_code_id_bytes.resize(8, 0);
+    
+    w.put(ac_code_id_bytes);
+    
+    std::vector<uint8_t> header = build_header(buf.size(), CMD_AC_IR_CONFIG_QUERY, session_id, 1110, 0, 1, 0, user_id, false);
+
+    std::vector<uint8_t> packet = header;
+    packet.insert(packet.end(), buf.begin(), buf.end());
+
+    std::vector<uint8_t> crc = get_complete_legal_crc(packet, communication_secret_key);
+    packet.insert(packet.end(), crc.begin(), crc.end());
+
+    return packet;
+}
 
 } // namespace e7_switcher

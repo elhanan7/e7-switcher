@@ -9,6 +9,7 @@ function print_help {
     echo "Options:"
     echo "  --esp32       Build for ESP32 using PlatformIO"
     echo "  --desktop     Build for desktop using CMake"
+    echo "  --debug       Build desktop version with debug symbols (only with --desktop)"
     echo "  --clean       Clean build directories before building"
     echo "  --upload      Upload to ESP32 (only with --esp32)"
     echo "  --monitor     Monitor ESP32 after upload (only with --esp32)"
@@ -21,6 +22,7 @@ BUILD_DESKTOP=0
 CLEAN=0
 UPLOAD=0
 MONITOR=0
+DEBUG=0
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -43,6 +45,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --monitor)
             MONITOR=1
+            shift
+            ;;
+        --debug)
+            DEBUG=1
             shift
             ;;
         --help)
@@ -117,7 +123,13 @@ if [[ $BUILD_DESKTOP -eq 1 ]]; then
     fi
     
     # Configure and build
-    cmake ..
+    if [[ $DEBUG -eq 1 ]]; then
+        echo "Configuring for debug build..."
+        cmake -DCMAKE_BUILD_TYPE=Debug ..
+    else
+        echo "Configuring for release build..."
+        cmake -DCMAKE_BUILD_TYPE=Release ..
+    fi
     make
     
     echo "Desktop build complete. Executable is at: build/e7_switcher"
