@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <mbedtls/aes.h>
+#include <esp_sntp.h>
 
 #include "client.h"
 #include "communication.h"   // Device struct
@@ -170,9 +171,9 @@ void setup() {
 
   // Apply initial LED state
   if (is_rest_day) {
-    ledWrite(true);     // solid ON
-  } else {
     ledWrite(false);    // start blink from OFF
+  } else {
+    ledWrite(true);     // solid ON
   }
 
   // If rest_day at boot, perform action now
@@ -202,14 +203,24 @@ void loop() {
       return;
     }
 
-    // Refresh time (helps if NTP hadn't synced yet)
-    struct tm timeinfo;
-    if (getLocalTime(&timeinfo, 3000)) {
-      char buf[32];
-      strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &timeinfo);
-      logger.infof("[cycle] Time: %s", buf);
+    // Only refresh time if NTP hasn't synced yet
+    if (sntp_get_sync_status() != SNTP_SYNC_STATUS_COMPLETED) {
+      struct tm timeinfo;
+      if (getLocalTime(&timeinfo, 3000)) {
+        char buf[32];
+        strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &timeinfo);
+        logger.infof("[cycle] Time: %s (NTP not synced yet)", buf);
+      } else {
+        logger.warning("[cycle] Failed to obtain time.");
+      }
     } else {
-      logger.warning("[cycle] Failed to obtain time.");
+      // NTP is synced, just log current time occasionally
+      struct tm timeinfo;
+      if (getLocalTime(&timeinfo, 100)) {
+        char buf[32];
+        strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &timeinfo);
+        logger.infof("[cycle] Time: %s (NTP synced)", buf);
+      }
     }
 
     // Check is_rest_day status
@@ -221,11 +232,11 @@ void loop() {
     if (new_is_rest_day != is_rest_day) {
       is_rest_day = new_is_rest_day;
       if (is_rest_day) {
-        ledWrite(true);           // solid ON
-      } else {
         blink_state = false;       // reset blink phase
         ledWrite(false);
         last_blink_ms = now;
+      } else {
+        ledWrite(true);           // solid ON
       }
     } else {
       // Keep current behavior (solid / blinking)
@@ -236,8 +247,8 @@ void loop() {
     do_rest_day_action_if_needed(is_rest_day);
   }
 
-  // 2) LED behavior: solid when rest_day; 1 Hz blink when not rest_day
-  if (is_rest_day) {
+  // 2) LED behavior: solid when NOT rest_day; 1 Hz blink when rest_day
+  if (!is_rest_day) {
     ledWrite(true);  // make sure it stays solid on
   } else {
     if (now - last_blink_ms >= BLINK_INTERVAL_MS) {
