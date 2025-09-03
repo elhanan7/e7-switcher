@@ -10,6 +10,7 @@
 #include "hebcal_is_rest_day.h"
 #include "secrets.h"
 #include "logger.h"
+#include "compression.h"
 
 const char *tz             = "IST-2IDT,M3.4.4/26,M10.5.0";
 

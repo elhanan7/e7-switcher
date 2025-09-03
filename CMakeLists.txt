@@ -15,7 +15,7 @@ find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json 3.11.2 REQUIRED)
 
 # Source files
-file(GLOB SOURCES "src/*.cpp")
+file(GLOB SOURCES "src/*.cpp" "src/*.c")
 
 # Create executable
 add_executable(e7-switcher ${SOURCES})
