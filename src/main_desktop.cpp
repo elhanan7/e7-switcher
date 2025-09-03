@@ -6,7 +6,6 @@
 #include <thread>
 #include <ctime>
 #include "client.h"
-#include "communication.h"
 #include "logger.h"
 #include "secrets.h"
 
