@@ -18,6 +18,24 @@
 
 namespace e7_switcher {
 
+class Writer {
+public:
+    Writer(std::vector<uint8_t>& data);
+
+    void u8(uint8_t b);
+    void u16(uint16_t s);
+    void u32(uint32_t i);
+    void put(const std::vector<uint8_t>& d);
+    void put(const uint8_t* d, size_t n);
+    void put_constant(uint8_t b, size_t n);
+
+private:
+    void _need(size_t n);
+
+    std::vector<uint8_t>& data_;
+    size_t p_;
+};
+
 namespace {
 
 std::vector<uint8_t> build_header(

@@ -7,24 +7,6 @@
 
 namespace e7_switcher {
 
-class Reader {
-public:
-    Reader(const std::vector<uint8_t>& data);
-
-    uint8_t u8();
-    uint16_t u16();
-    uint32_t u32();
-    std::vector<uint8_t> take(size_t n);
-    std::string lp_string_max(size_t max_len, const std::string& encoding = "utf-8");
-    std::string ip_reversed();
-
-private:
-    void _need(size_t n);
-
-    const std::vector<uint8_t>& data_;
-    size_t p_;
-};
-
 struct PhoneLoginRecord {
     int32_t session_id;
     int32_t user_id;
