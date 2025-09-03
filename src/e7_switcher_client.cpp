@@ -98,7 +98,7 @@ std::vector<Device> E7SwitcherClient::list_devices() {
     return devices;
 }
 
-void E7SwitcherClient::control_device(const std::string& device_name, const std::string& action) {
+void E7SwitcherClient::control_switch(const std::string& device_name, const std::string& action) {
     Logger::instance().debug("Start of control_device");
     std::vector<Device> devices = list_devices();
     Logger::instance().debug("Got device list");

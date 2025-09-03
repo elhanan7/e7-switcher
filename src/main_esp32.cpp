@@ -48,7 +48,7 @@ void do_rest_day_action_if_needed(bool is_rest_day) {
   // Create a new client each 8-minute cycle and send ON
   e7_switcher::E7SwitcherClient client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
   logger.infof("[rest_day] Sending ON to \"%s\"...", E7_SWITCHER_DEVICE_NAME);
-  client.control_device(E7_SWITCHER_DEVICE_NAME, "on");
+  client.control_switch(E7_SWITCHER_DEVICE_NAME, "on");
   logger.info("[rest_day] Control command sent.");
 }
 
@@ -89,7 +89,7 @@ unsigned long handle_auto_shutdown() {
 
     if (status.open_time > E7_AUTOSHUTDOWN_TIME_SECONDS) {
       logger.infof("[auto shutdown] Sending OFF to \"%s\"...", E7_SWITCHER_DEVICE_NAME);
-      client.control_device(E7_SWITCHER_DEVICE_NAME, "off");
+      client.control_switch(E7_SWITCHER_DEVICE_NAME, "off");
       logger.info("[auto shutdown] Control command sent.");
       // Check again in 30 seconds to confirm it turned off
       return 30UL * 1000UL;

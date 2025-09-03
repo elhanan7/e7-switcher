@@ -40,12 +40,12 @@ int main(int argc, char* argv[]) {
         } 
         else if (command == "on") {
             logger.infof("Turning ON device: %s", E7_SWITCHER_DEVICE_NAME);
-            client.control_device(E7_SWITCHER_DEVICE_NAME, "on");
+            client.control_switch(E7_SWITCHER_DEVICE_NAME, "on");
             logger.info("Command sent successfully");
         } 
         else if (command == "off") {
             logger.infof("Turning OFF device: %s", E7_SWITCHER_DEVICE_NAME);
-            client.control_device(E7_SWITCHER_DEVICE_NAME, "off");
+            client.control_switch(E7_SWITCHER_DEVICE_NAME, "off");
             logger.info("Command sent successfully");
         } 
         else {
