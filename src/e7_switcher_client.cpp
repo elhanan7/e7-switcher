@@ -1,4 +1,4 @@
-#include "client.h"
+#include "e7_switcher_client.h"
 #include "constants.h"
 #include "packets.h"
 #include "parser.h"
@@ -20,20 +20,19 @@
 
 namespace e7_switcher {
 
-E7Client::E7Client(const std::string& account, const std::string& password)
-    : host_(IP_HUB), port_(PORT_HUB), timeout_(5), sock_(-1), 
-      account_(account), password_(password), session_id_(0), user_id_(0) {
+E7SwitcherClient::E7SwitcherClient(const std::string& account, const std::string& password)
+    : host_(IP_HUB), port_(PORT_HUB), timeout_(5), sock_(-1), session_id_(0), user_id_(0) {
     connect();
     login(account, password);
 }
 
-E7Client::~E7Client() {
+E7SwitcherClient::~E7SwitcherClient() {
     if (sock_ != -1) {
         ::close(sock_);
     }
 }
 
-void E7Client::connect() {
+void E7SwitcherClient::connect() {
     sock_ = socket(AF_INET, SOCK_STREAM, 0);
     if (sock_ < 0) throw std::runtime_error("Failed to create socket");
 
@@ -56,7 +55,7 @@ void E7Client::connect() {
     stream_.connect(sock_);
 }
 
-void E7Client::close() {
+void E7SwitcherClient::close() {
     if (sock_ != -1) {
         stream_.disconnect();
         ::close(sock_);
@@ -64,7 +63,7 @@ void E7Client::close() {
     }
 }
 
-PhoneLoginRecord E7Client::login(const std::string& account, const std::string& password) {
+PhoneLoginRecord E7SwitcherClient::login(const std::string& account, const std::string& password) {
     std::vector<uint8_t> login_packet = build_login_payload(account, password);
     stream_.send_message(login_packet);
     ProtocolMessage received_message = stream_.receive_message();
@@ -78,7 +77,7 @@ PhoneLoginRecord E7Client::login(const std::string& account, const std::string& 
     return login_data;
 }
 
-std::vector<Device> E7Client::list_devices() {
+std::vector<Device> E7SwitcherClient::list_devices() {
     std::vector<uint8_t> pkt = build_device_list_payload(session_id_, user_id_, communication_secret_key_);
     stream_.send_message(pkt);
     ProtocolMessage received_message = stream_.receive_message();
@@ -99,7 +98,7 @@ std::vector<Device> E7Client::list_devices() {
     return devices;
 }
 
-void E7Client::control_device(const std::string& device_name, const std::string& action) {
+void E7SwitcherClient::control_device(const std::string& device_name, const std::string& action) {
     Logger::instance().debug("Start of control_device");
     std::vector<Device> devices = list_devices();
     Logger::instance().debug("Got device list");
@@ -126,7 +125,7 @@ void E7Client::control_device(const std::string& device_name, const std::string&
     Logger::instance().infof("Received response from \"%s\"", device_name.c_str());
 }
 
-LightStatus E7Client::get_light_status(const std::string& device_name) {
+LightStatus E7SwitcherClient::get_light_status(const std::string& device_name) {
     std::vector<Device> devices = list_devices();
     auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
     if (it == devices.end()) throw std::runtime_error("Device not found");

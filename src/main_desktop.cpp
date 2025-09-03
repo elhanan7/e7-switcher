@@ -5,7 +5,7 @@
 #include <chrono>
 #include <thread>
 #include <ctime>
-#include "client.h"
+#include "e7_switcher_client.h"
 #include "logger.h"
 #include "secrets.h"
 
@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     
     try {
         // Create client
-        e7_switcher::E7Client client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
+        e7_switcher::E7SwitcherClient client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
         
         if (command == "status") {
             logger.info("Getting device status...");

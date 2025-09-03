@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stream_message.h"
+#include "message_stream.h"
 #include "data_structures.h"
 #include "parser.h"
 #include <string>
@@ -9,10 +9,10 @@
 
 namespace e7_switcher {
 
-class E7Client {
+class E7SwitcherClient {
 public:
-    E7Client(const std::string& account, const std::string& password);
-    ~E7Client();
+    E7SwitcherClient(const std::string& account, const std::string& password);
+    ~E7SwitcherClient();
 
     // Connection management
     void connect();
@@ -31,14 +31,12 @@ private:
     int sock_;
     
     // Authentication properties
-    std::string account_;
-    std::string password_;
     int32_t session_id_;
     int32_t user_id_;
     std::vector<uint8_t> communication_secret_key_;
     
     // Stream message handler
-    StreamMessage stream_;
+    MessageStream stream_;
     
     // Internal methods
     PhoneLoginRecord login(const std::string& account, const std::string& password);

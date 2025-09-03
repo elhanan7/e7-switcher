@@ -1,4 +1,4 @@
-#include "stream_message.h"
+#include "message_stream.h"
 #include "constants.h"
 #include "parser.h"
 #include <sys/socket.h>
@@ -12,23 +12,23 @@ namespace {
 inline uint16_t le16(const uint8_t* p) { return static_cast<uint16_t>(p[0] | (p[1] << 8)); }
 }
 
-StreamMessage::StreamMessage() : sock_(-1) {}
+MessageStream::MessageStream() : sock_(-1) {}
 
-StreamMessage::~StreamMessage() {
+MessageStream::~MessageStream() {
     // We don't close the socket here as it's managed by the caller
 }
 
-void StreamMessage::connect(int sock) {
+void MessageStream::connect(int sock) {
     sock_ = sock;
     inbuf_.clear();
 }
 
-void StreamMessage::disconnect() {
+void MessageStream::disconnect() {
     sock_ = -1;
     inbuf_.clear();
 }
 
-void StreamMessage::send_message(const std::vector<uint8_t>& data) {
+void MessageStream::send_message(const std::vector<uint8_t>& data) {
     if (sock_ == -1) throw std::runtime_error("Not connected");
     const uint8_t* p = data.data();
     size_t left = data.size();
@@ -40,7 +40,7 @@ void StreamMessage::send_message(const std::vector<uint8_t>& data) {
     }
 }
 
-ProtocolMessage StreamMessage::receive_message(int timeout_ms) {
+ProtocolMessage MessageStream::receive_message(int timeout_ms) {
     if (sock_ == -1) throw std::runtime_error("Not connected");
 
     // Temporarily extend SO_RCVTIMEO for this call; restore after.
@@ -85,7 +85,7 @@ ProtocolMessage StreamMessage::receive_message(int timeout_ms) {
     }
 }
 
-bool StreamMessage::try_extract_one_packet(std::vector<uint8_t>& out) {
+bool MessageStream::try_extract_one_packet(std::vector<uint8_t>& out) {
     // Search for start-of-header (FE F0)
     size_t i = 0;
     while (true) {

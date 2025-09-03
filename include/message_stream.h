@@ -7,10 +7,10 @@
 
 namespace e7_switcher {
 
-class StreamMessage {
+class MessageStream {
 public:
-    StreamMessage();
-    ~StreamMessage();
+    MessageStream();
+    ~MessageStream();
 
     // Connect/disconnect
     void connect(int sock);

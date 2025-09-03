@@ -14,7 +14,7 @@ constexpr uint16_t PROTO_VER_3 = 0x0503;
 constexpr uint16_t MAGIC2 = 0xFEF0; // header[0x26:0x28] (LE -> f0 fe on wire)
 
 // Server configuration
-const char* const IP_HUB = "47.91.75.117";
+const char* const IP_HUB = "il-papi.ogemray-server.com";
 constexpr int PORT_HUB = 9091;
 
 // AES configuration

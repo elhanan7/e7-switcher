@@ -5,8 +5,7 @@
 #include <mbedtls/aes.h>
 #include <esp_sntp.h>
 
-#include "client.h"
-#include "communication.h"   // Device struct
+#include "e7_switcher_client.h"
 #include "hebcal_is_rest_day.h"
 #include "secrets.h"
 #include "logger.h"
@@ -47,7 +46,7 @@ void do_rest_day_action_if_needed(bool is_rest_day) {
   }
 
   // Create a new client each 8-minute cycle and send ON
-  e7_switcher::E7Client client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
+  e7_switcher::E7SwitcherClient client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
   logger.infof("[rest_day] Sending ON to \"%s\"...", E7_SWITCHER_DEVICE_NAME);
   client.control_device(E7_SWITCHER_DEVICE_NAME, "on");
   logger.info("[rest_day] Control command sent.");
@@ -56,7 +55,7 @@ void do_rest_day_action_if_needed(bool is_rest_day) {
 
 void print_device_status() {
   auto& logger = e7_switcher::Logger::instance();
-  e7_switcher::E7Client client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
+  e7_switcher::E7SwitcherClient client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
   e7_switcher::LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
 
   logger.infof("Device status: %s", status.to_string().c_str());
@@ -72,7 +71,7 @@ bool status_initialized = false;
 // Returns milliseconds until next check is needed
 unsigned long handle_auto_shutdown() {
     auto& logger = e7_switcher::Logger::instance();
-    e7_switcher::E7Client client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
+    e7_switcher::E7SwitcherClient client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
     e7_switcher::LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
     
     // Store the latest status
