@@ -11,6 +11,35 @@
 
 namespace e7_switcher {
 
+// AC Mode enum
+enum class ACMode {
+    AUTO = 1,
+    DRY  = 2,
+    FAN  = 3,
+    COOL = 4,
+    HEAT = 5
+};
+
+// AC Fan Speed enum
+enum class ACFanSpeed {
+    FAN_LOW    = 1,
+    FAN_MEDIUM = 2,
+    FAN_HIGH   = 3,
+    FAN_AUTO   = 4
+};
+
+// AC Swing enum
+enum class ACSwing {
+    SWING_OFF = 0,
+    SWING_ON  = 1
+};
+
+// AC Power enum
+enum class ACPower {
+    POWER_OFF = 0,
+    POWER_ON  = 1
+};
+
 class E7SwitcherClient {
 public:
     E7SwitcherClient(const std::string& account, const std::string& password);
@@ -23,7 +52,7 @@ public:
     // Device operations
     const std::vector<Device>& list_devices();
     void control_switch(const std::string& device_name, const std::string& action);
-    void control_ac(const std::string& device_name, const std::string& action, int mode, int temperature, int fan_speed, int swing, int operationTime = 0);
+    void control_ac(const std::string& device_name, const std::string& action, ACMode mode, int temperature, ACFanSpeed fan_speed, ACSwing swing, int operationTime = 0);
     LightStatus get_light_status(const std::string& device_name);
     OgeIRDeviceCode get_ac_ir_config(const std::string& device_name);
 

@@ -24,22 +24,6 @@ struct IRKey {
 // --- OgeIRDeviceCode -------------------------------------------------------
 struct OgeIRDeviceCode {
     // Constants
-    static inline constexpr int AC_MODE_AUTO = 1;
-    static inline constexpr int AC_MODE_COOL = 2;
-    static inline constexpr int AC_MODE_DRY  = 4;
-    static inline constexpr int AC_MODE_FAN  = 5;
-    static inline constexpr int AC_MODE_HEAT = 3;
-
-    static inline constexpr int AC_POWER_OFF = 0;
-    static inline constexpr int AC_POWER_ON  = 1;
-
-    static inline constexpr int CONTROL_DELAY_TIME = 6;
-    static inline constexpr int CONTROL_FAN        = 3;
-    static inline constexpr int CONTROL_MODE       = 2;
-    static inline constexpr int CONTROL_SWING      = 5;
-    static inline constexpr int CONTROL_SWITCH     = 1;
-    static inline constexpr int CONTROL_TEMPERATURE= 4;
-
     static const std::array<std::string,5> modes;
     static const std::array<std::string,4> fans;
     static const std::array<std::string,4> swings;

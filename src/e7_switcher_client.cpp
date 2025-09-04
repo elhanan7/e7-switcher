@@ -129,7 +129,7 @@ void E7SwitcherClient::control_switch(const std::string& device_name, const std:
     Logger::instance().infof("Received response from \"%s\"", device_name.c_str());
 }
 
-void E7SwitcherClient::control_ac(const std::string& device_name, const std::string& action, int mode, int temperature, int fan_speed, int swing, int operationTime) {
+void E7SwitcherClient::control_ac(const std::string& device_name, const std::string& action, ACMode mode, int temperature, ACFanSpeed fan_speed, ACSwing swing, int operationTime) {
     const std::vector<Device>& devices = list_devices();
     auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
     if (it == devices.end()) throw std::runtime_error("Device not found");
@@ -141,7 +141,14 @@ void E7SwitcherClient::control_ac(const std::string& device_name, const std::str
         enc_pwd_bytes, std::string(communication_secret_key_.begin(), communication_secret_key_.end()));
 
     const OgeIRDeviceCode& resolver = get_ac_ir_config(device_name);
-    std::string control_str = get_ac_control_code(mode, fan_speed, swing, temperature, action == "on", resolver);
+    int power_value = (action == "on") ? static_cast<int>(ACPower::POWER_ON) : static_cast<int>(ACPower::POWER_OFF);
+    std::string control_str = get_ac_control_code(
+        static_cast<int>(mode), 
+        static_cast<int>(fan_speed), 
+        static_cast<int>(swing), 
+        temperature, 
+        power_value, 
+        resolver);
     
     std::vector<uint8_t> control_packet = build_ac_control_payload(
         session_id_, user_id_, communication_secret_key_, it->did, dec_pwd_bytes, control_str, operationTime);

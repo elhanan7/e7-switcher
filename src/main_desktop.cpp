@@ -9,11 +9,13 @@
 #include "logger.h"
 #include "secrets.h"
 
+using namespace e7_switcher;
+
 // Simple command-line interface for desktop platforms
 int main(int argc, char* argv[]) {
     // Initialize the logger
-    e7_switcher::Logger::initialize();
-    auto& logger = e7_switcher::Logger::instance();
+    Logger::initialize();
+    auto& logger = Logger::instance();
     
     logger.info("Switcher E7 Desktop Client");
     logger.info("=========================");
@@ -31,11 +33,11 @@ int main(int argc, char* argv[]) {
     
     try {
         // Create client
-        e7_switcher::E7SwitcherClient client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
+        E7SwitcherClient client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
         
         if (command == "status") {
             logger.info("Getting device status...");
-            e7_switcher::LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
+            LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
             logger.infof("Device status: %s", status.to_string().c_str());
         } 
         else if (command == "on") {
@@ -50,7 +52,7 @@ int main(int argc, char* argv[]) {
         } 
         else if (command == "ac") {
             logger.info("Getting AC IR config...");
-            client.control_ac("Work AC", "on", 4, 22, 3, 0);
+            client.control_ac("Work AC", "on", ACMode::COOL, 26, ACFanSpeed::FAN_LOW, ACSwing::SWING_ON);
             logger.info("Command sent successfully");
         }
         else {
