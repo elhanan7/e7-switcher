@@ -23,6 +23,7 @@ public:
     // Device operations
     const std::vector<Device>& list_devices();
     void control_switch(const std::string& device_name, const std::string& action);
+    void control_ac(const std::string& device_name, const std::string& action, int mode, int temperature, int fan_speed, int swing, int operationTime = 0);
     LightStatus get_light_status(const std::string& device_name);
     OgeIRDeviceCode get_ac_ir_config(const std::string& device_name);
 

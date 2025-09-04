@@ -116,7 +116,7 @@ void E7SwitcherClient::control_switch(const std::string& device_name, const std:
         enc_pwd_bytes, std::string(communication_secret_key_.begin(), communication_secret_key_.end()));
     int on_or_off = (action == "on") ? 1 : 0;
 
-    std::vector<uint8_t> control_packet = build_device_control_payload(
+    std::vector<uint8_t> control_packet = build_switch_control_payload(
         session_id_, user_id_, communication_secret_key_, it->did, dec_pwd_bytes, on_or_off);
 
     Logger::instance().infof("Sending control command to \"%s\"...", device_name.c_str());
@@ -126,6 +126,34 @@ void E7SwitcherClient::control_switch(const std::string& device_name, const std:
 
     // async status response
     ProtocolMessage response = stream_.receive_message();
+    Logger::instance().infof("Received response from \"%s\"", device_name.c_str());
+}
+
+void E7SwitcherClient::control_ac(const std::string& device_name, const std::string& action, int mode, int temperature, int fan_speed, int swing, int operationTime) {
+    const std::vector<Device>& devices = list_devices();
+    auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
+    if (it == devices.end()) throw std::runtime_error("Device not found");
+
+    if (it->type != "0E01") throw std::runtime_error("Device type not supported");
+
+    std::vector<unsigned char> enc_pwd_bytes = base64_decode(it->visit_pwd);
+    std::vector<uint8_t> dec_pwd_bytes = decrypt_hex_ecb_pkcs7(
+        enc_pwd_bytes, std::string(communication_secret_key_.begin(), communication_secret_key_.end()));
+
+    const OgeIRDeviceCode& resolver = get_ac_ir_config(device_name);
+    std::string control_str = get_ac_control_code(mode, fan_speed, swing, temperature, action == "on", resolver);
+    
+    std::vector<uint8_t> control_packet = build_ac_control_payload(
+        session_id_, user_id_, communication_secret_key_, it->did, dec_pwd_bytes, control_str, operationTime);
+
+    Logger::instance().infof("Sending control command to \"%s\"...", device_name.c_str());
+    stream_.send_message(control_packet);                // send
+    (void)stream_.receive_message();  // ignore ack, but drain it
+    Logger::instance().infof("Control command sent to \"%s\"", device_name.c_str());
+
+    // async status response
+    ProtocolMessage response = stream_.receive_message();
+    Logger::instance().debugf("Response: %d", response.err_code);
     Logger::instance().infof("Received response from \"%s\"", device_name.c_str());
 }
 

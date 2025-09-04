@@ -69,10 +69,17 @@ std::vector<uint8_t> decrypt_hex_ecb_pkcs7(const std::vector<uint8_t>& ciphertex
 
     if(!(ctx = EVP_CIPHER_CTX_new())) throw std::runtime_error("Failed to create new cipher context");
 
-    std::string truncated_key = key;//key.substr(0, 16);
-    if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, (const unsigned char*)truncated_key.c_str(), NULL)) throw std::runtime_error("Failed to initialize decryption");
+    auto key_len_fn = EVP_aes_128_ecb;
+    if (key.length() == 24) {
+        key_len_fn = EVP_aes_192_ecb;
+    }
+    else if (key.length() == 32) {
+        key_len_fn = EVP_aes_256_ecb;
+    }
+    
+    if(1 != EVP_DecryptInit_ex(ctx, key_len_fn(), NULL, (const unsigned char*)key.c_str(), NULL)) throw std::runtime_error("Failed to initialize decryption");
 
-    EVP_CIPHER_CTX_set_padding(ctx, 1);
+    EVP_CIPHER_CTX_set_padding(ctx, 0);
 
     if(1 != EVP_DecryptUpdate(ctx, plaintext.data(), &len, ciphertext.data(), ciphertext.size())) throw std::runtime_error("Failed to decrypt update");
     plaintext_len = len;
@@ -94,9 +101,16 @@ std::vector<uint8_t> encrypt_to_hex_ecb_pkcs7(const std::vector<uint8_t>& plaint
 
     if(!(ctx = EVP_CIPHER_CTX_new())) throw std::runtime_error("Failed to create new cipher context");
 
-    std::string truncated_key = key.substr(0, 16);
-    if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, (const unsigned char*)truncated_key.c_str(), NULL)) throw std::runtime_error("Failed to initialize encryption");
-
+    auto key_len_fn = EVP_aes_128_ecb;
+    if (key.length() == 24) {
+        key_len_fn = EVP_aes_192_ecb;
+    }
+    else if (key.length() == 32) {
+        key_len_fn = EVP_aes_256_ecb;
+    }
+    
+    if(1 != EVP_EncryptInit_ex(ctx, key_len_fn(), NULL, (const unsigned char*)key.c_str(), NULL)) throw std::runtime_error("Failed to initialize encryption");
+    
     if(1 != EVP_EncryptUpdate(ctx, ciphertext.data(), &len, plaintext.data(), plaintext.size())) throw std::runtime_error("Failed to encrypt update");
     ciphertext_len = len;
 

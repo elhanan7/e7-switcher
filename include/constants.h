@@ -20,6 +20,7 @@ constexpr int PORT_HUB = 9091;
 // AES configuration
 const char* const AES_KEY_2_50 = "OGEseetime201800";
 const char* const AES_KEY_NATIVE = "OGE201600000000000000000";
+const char* const AES_KEY_PRIMARY = "OGE201601234567890123456";
 
 // Default device configuration
 const unsigned char DEFAULT_BUILD_VERSION[] = "16\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";

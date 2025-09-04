@@ -50,8 +50,7 @@ int main(int argc, char* argv[]) {
         } 
         else if (command == "ac") {
             logger.info("Getting AC IR config...");
-            client.get_ac_ir_config("AC");
-            client.get_ac_ir_config("Work AC");
+            client.control_ac("Work AC", "on", 4, 22, 3, 0);
             logger.info("Command sent successfully");
         }
         else {

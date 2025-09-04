@@ -125,6 +125,20 @@ std::string OgeIRDeviceCode::protocol_para_for(const IRKey* bean) const {
     return *bean->para;
 }
 
+std::string get_ac_control_code(int mode, int fan_speed, int swing, int temperature, int power, const OgeIRDeviceCode &resolver)
+{
+    OgeIRDeviceCode mutated_resolver = resolver;
+    mutated_resolver.mode = mode;
+    mutated_resolver.fan_speed = fan_speed;
+    mutated_resolver.swing = swing;
+    mutated_resolver.temperature = temperature;
+    mutated_resolver.power = power;
+    const IRKey* ir_key = mutated_resolver.swing_ir_code();
+    if (!ir_key) {
+        throw std::runtime_error("Failed to get IR key");
+    }
+    return resolver.protocol_para + "|" + ir_key->hex_code;
+}
 // OgeIRDeviceCode parsing is now handled in json_helpers.cpp
 
 // Factory function is now implemented in json_helpers.cpp

@@ -9,6 +9,7 @@
 #else
 #define E7_PLATFORM_DESKTOP 1
 #include <nlohmann/json.hpp>
+#include "oge_ir_device_code.h"
 using json = nlohmann::json;
 #endif
 
@@ -130,13 +131,13 @@ static bool parse_ir_key(const void* json_obj, IRKey& k) {
     const JsonObject& j = *static_cast<const JsonObject*>(json_obj);
     
     if (j["Key"].is<const char*>()) k.key = j["Key"].as<std::string>();
-    else if (j["key"].is<const char*>()) k.key = j["key"].as<std::string>();
-    else if (j["IRKey"].is<const char*>()) k.key = j["IRKey"].as<std::string>();
     else k.key = "";
     
     if (j["Para"].is<const char*>()) k.para = j["Para"].as<std::string>();
-    else if (j["para"].is<const char*>()) k.para = j["para"].as<std::string>();
     else k.para = std::nullopt;
+
+    if (j["HexCode"].is<const char*>()) k.hex_code = j["HexCode"].as<std::string>();
+    else k.hex_code = "";
     
     return true;
 }
@@ -203,20 +204,22 @@ OgeIRDeviceCode parse_oge_ir_device_code(const std::string& json_str) {
 }
 
 #else
-// Linux/Mac implementation using nlohmann/json
+    // Linux/Mac implementation using nlohmann/json
 
-// Internal helper function - not exposed in header
-static bool parse_ir_key(const void* json_obj, IRKey& k) {
+    // Internal helper function - not exposed in header
+    static bool
+    parse_ir_key(const void *json_obj, IRKey &k)
+{
     const json& j = *static_cast<const json*>(json_obj);
     
     if      (j.contains("Key"))   k.key = j.at("Key").get<std::string>();
-    else if (j.contains("key"))   k.key = j.at("key").get<std::string>();
-    else if (j.contains("IRKey")) k.key = j.at("IRKey").get<std::string>();
     else                          k.key = "";
     
     if      (j.contains("Para"))  k.para = j.at("Para").get<std::string>();
-    else if (j.contains("para"))  k.para = j.at("para").get<std::string>();
     else                          k.para = std::nullopt;
+    
+    if      (j.contains("HexCode")) k.hex_code = j.at("HexCode").get<std::string>();
+    else                              k.hex_code = "";
     
     return true;
 }

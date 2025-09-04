@@ -207,6 +207,7 @@ ACStatus parse_ac_status(const std::vector<uint8_t>& work_status_bytes)
     
     status.wifi_power = r.u8();
     status.temperature = r.u16();
+    // ac_data: [on_or_off_code, mode, temperature, fan_code * 16 + swing_code]
     status.ac_data = r.take(4);
     status.temperature_unit = r.u8();
     status.device_type = r.u8();

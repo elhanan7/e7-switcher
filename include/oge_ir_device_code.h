@@ -18,6 +18,7 @@ OgeIRDeviceCode parse_oge_ir_device_code(const std::string& json_str);
 struct IRKey {
     std::string key;
     std::optional<std::string> para;
+    std::string hex_code;
 };
 
 // --- OgeIRDeviceCode -------------------------------------------------------
@@ -90,5 +91,7 @@ private:
     static std::optional<std::string> fan_token_for(int fan_speed);
     static std::optional<std::string> swing_token_for(int swing);
 };
+
+std::string get_ac_control_code(int mode, int fan_speed, int swing, int temperature, int power, const OgeIRDeviceCode& resolver);
 
 }

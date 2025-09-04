@@ -26,6 +26,7 @@ public:
     void u16(uint16_t s);
     void u32(uint32_t i);
     void put(const std::vector<uint8_t>& d);
+    void put(const std::string& s);
     void put(const uint8_t* d, size_t n);
     void put_constant(uint8_t b, size_t n);
 
@@ -112,6 +113,12 @@ void Writer::put(const uint8_t* d, size_t n) {
     p_ += n;
 }
 
+void Writer::put(const std::string& s) {
+    _need(s.size());
+    std::memcpy(data_.data() + p_, s.c_str(), s.size());
+    p_ += s.size();
+}
+
 void Writer::put_constant(uint8_t b, size_t n) {
     _need(n);
     std::memset(data_.data() + p_, b, n);
@@ -185,7 +192,7 @@ std::vector<uint8_t> build_device_list_payload(
     return header;
 }
 
-std::vector<uint8_t> build_device_control_payload(
+std::vector<uint8_t> build_switch_control_payload(
     int32_t session_id,
     int32_t user_id,
     const std::vector<uint8_t>& communication_secret_key,
@@ -205,8 +212,6 @@ std::vector<uint8_t> build_device_control_payload(
     padded_pwd.resize(32, 0);
     std::vector<uint8_t> encrypted_pwd = encrypt_to_hex_ecb_pkcs7(padded_pwd, AES_KEY_NATIVE);
     encrypted_pwd.resize(32);
-    logger.debugf("Encrypted password: %s", encrypted_pwd.data());
-    logger.debugf("Encrypted password length: %d", encrypted_pwd.size());
     w.put(encrypted_pwd);
 
     w.u8(0x0A);
@@ -265,6 +270,41 @@ std::vector<uint8_t> build_ac_ir_config_query_payload(int32_t session_id, int32_
     w.put(ac_code_id_bytes);
     
     std::vector<uint8_t> header = build_header(buf.size(), CMD_AC_IR_CONFIG_QUERY, session_id, 1110, 0, 1, 0, user_id, false);
+
+    std::vector<uint8_t> packet = header;
+    packet.insert(packet.end(), buf.begin(), buf.end());
+
+    std::vector<uint8_t> crc = get_complete_legal_crc(packet, communication_secret_key);
+    packet.insert(packet.end(), crc.begin(), crc.end());
+
+    return packet;
+}
+
+std::vector<uint8_t> build_ac_control_payload(int32_t session_id, int32_t user_id,
+                                              const std::vector<uint8_t> &communication_secret_key, int32_t device_id, 
+                                              const std::vector<uint8_t> &device_pwd, const std::string &control_str,
+                                              int operationTime)
+{
+    size_t buffer_length = control_str.length() + 47;
+    std::vector<uint8_t> buf(buffer_length, 0);
+    Writer w(buf);
+
+    w.u32(device_id);
+    w.u32(user_id);
+
+    std::vector<uint8_t> padded_pwd = device_pwd;
+    padded_pwd.resize(32, 0);
+    auto& logger = e7_switcher::Logger::instance();
+    
+    std::vector<uint8_t> encrypted_pwd = encrypt_to_hex_ecb_pkcs7(padded_pwd, AES_KEY_NATIVE);
+    encrypted_pwd.resize(32);
+    w.put(encrypted_pwd);
+    w.u8(1);
+    w.u16(control_str.length() + 4);
+    w.u32(operationTime);
+    w.put(control_str);
+
+    std::vector<uint8_t> header = build_header(buf.size(), CMD_DEVICE_CONTROL, session_id, 1111, 0, 1, 0, user_id, false);
 
     std::vector<uint8_t> packet = header;
     packet.insert(packet.end(), buf.begin(), buf.end());
