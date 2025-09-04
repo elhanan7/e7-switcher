@@ -39,6 +39,22 @@ private:
 
 namespace {
 
+std::vector<uint8_t> assemble_and_sign_message(
+    const std::vector<uint8_t>& header,
+    const std::vector<uint8_t>& payload,
+    const std::vector<uint8_t>& communication_secret_key
+) {
+    std::vector<uint8_t> packet = header;
+    if (!payload.empty()) {
+        packet.insert(packet.end(), payload.begin(), payload.end());
+    }
+
+    std::vector<uint8_t> crc = get_complete_legal_crc(packet, communication_secret_key);
+    packet.insert(packet.end(), crc.begin(), crc.end());
+
+    return packet;
+}
+
 std::vector<uint8_t> build_header(
     uint16_t payload_len,
     uint16_t cmd_code,
@@ -171,14 +187,7 @@ std::vector<uint8_t> build_login_payload(
     std::vector<uint8_t> encrypted = encrypt_to_hex_ecb_pkcs7(buf, AES_KEY_2_50);
 
     std::vector<uint8_t> header = build_header(encrypted.size(), CMD_LOGIN, 0, serial, control_attr, direction, errcode, 0, true);
-
-    std::vector<uint8_t> packet = header;
-    packet.insert(packet.end(), encrypted.begin(), encrypted.end());
-
-    std::vector<uint8_t> crc = get_complete_legal_crc(packet, {});
-    packet.insert(packet.end(), crc.begin(), crc.end());
-
-    return packet;
+    return assemble_and_sign_message(header, encrypted, {});
 }
 
 std::vector<uint8_t> build_device_list_payload(
@@ -187,9 +196,7 @@ std::vector<uint8_t> build_device_list_payload(
     const std::vector<uint8_t>& communication_secret_key
 ) {
     std::vector<uint8_t> header = build_header(0, CMD_DEVICE_LIST, session_id, 1102, 0, 1, 0, user_id, false);
-    std::vector<uint8_t> crc = get_complete_legal_crc(header, communication_secret_key);
-    header.insert(header.end(), crc.begin(), crc.end());
-    return header;
+    return assemble_and_sign_message(header, {}, communication_secret_key);
 }
 
 std::vector<uint8_t> build_switch_control_payload(
@@ -222,12 +229,7 @@ std::vector<uint8_t> build_switch_control_payload(
     w.u32(0); // closing time
     
     std::vector<uint8_t> header = build_header(buf.size(), CMD_DEVICE_CONTROL, session_id, 1104, 0, 1, 0, user_id, false);
-
-    std::vector<uint8_t> packet = header;
-    packet.insert(packet.end(), buf.begin(), buf.end());
-
-    std::vector<uint8_t> crc = get_complete_legal_crc(packet, communication_secret_key);
-    packet.insert(packet.end(), crc.begin(), crc.end());
+    auto packet = assemble_and_sign_message(header, buf, communication_secret_key);
     logger.debugf("Built device control packet for device %d", device_id);
 
     return packet;
@@ -245,14 +247,7 @@ std::vector<uint8_t> build_device_query_payload(
     w.u32(device_id);
     
     std::vector<uint8_t> header = build_header(buf.size(), CMD_DEVICE_QUERY, session_id, 1104, 0, 1, 0, user_id, false);
-
-    std::vector<uint8_t> packet = header;
-    packet.insert(packet.end(), buf.begin(), buf.end());
-
-    std::vector<uint8_t> crc = get_complete_legal_crc(packet, communication_secret_key);
-    packet.insert(packet.end(), crc.begin(), crc.end());
-
-    return packet;
+    return assemble_and_sign_message(header, buf, communication_secret_key);
 }
 
 std::vector<uint8_t> build_ac_ir_config_query_payload(int32_t session_id, int32_t user_id, const std::vector<uint8_t> &communication_secret_key, int32_t device_id, std::string ac_code_id)
@@ -270,14 +265,7 @@ std::vector<uint8_t> build_ac_ir_config_query_payload(int32_t session_id, int32_
     w.put(ac_code_id_bytes);
     
     std::vector<uint8_t> header = build_header(buf.size(), CMD_AC_IR_CONFIG_QUERY, session_id, 1110, 0, 1, 0, user_id, false);
-
-    std::vector<uint8_t> packet = header;
-    packet.insert(packet.end(), buf.begin(), buf.end());
-
-    std::vector<uint8_t> crc = get_complete_legal_crc(packet, communication_secret_key);
-    packet.insert(packet.end(), crc.begin(), crc.end());
-
-    return packet;
+    return assemble_and_sign_message(header, buf, communication_secret_key);
 }
 
 std::vector<uint8_t> build_ac_control_payload(int32_t session_id, int32_t user_id,
@@ -305,14 +293,7 @@ std::vector<uint8_t> build_ac_control_payload(int32_t session_id, int32_t user_i
     w.put(control_str);
 
     std::vector<uint8_t> header = build_header(buf.size(), CMD_DEVICE_CONTROL, session_id, 1111, 0, 1, 0, user_id, false);
-
-    std::vector<uint8_t> packet = header;
-    packet.insert(packet.end(), buf.begin(), buf.end());
-
-    std::vector<uint8_t> crc = get_complete_legal_crc(packet, communication_secret_key);
-    packet.insert(packet.end(), crc.begin(), crc.end());
-
-    return packet;
+    return assemble_and_sign_message(header, buf, communication_secret_key);
 }
 
 } // namespace e7_switcher
