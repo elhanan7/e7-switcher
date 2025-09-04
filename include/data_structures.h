@@ -70,6 +70,11 @@ struct ACStatus {
     int wifi_power;
     float temperature;
     std::vector<uint8_t> ac_data; // 4 bytes of AC data
+    ACPower power_status;
+    ACMode mode;
+    int ac_temperature;
+    ACFanSpeed fan_speed;
+    ACSwing swing;
     int temperature_unit;
     int device_type;
     std::string code_id;

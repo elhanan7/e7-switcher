@@ -194,7 +194,6 @@ SwitchStatus parse_switch_status(const std::vector<uint8_t>& payload) {
 
 ACStatus parse_ac_status_from_query_payload(const std::vector<uint8_t>& payload) {
     auto& logger = e7_switcher::Logger::instance();
-    logger.debugf("Parsing switch status from %d bytes", payload.size());
     Reader r(payload);
     r.take(2); // original cmd
     r.take(2); // original serial
@@ -231,6 +230,10 @@ ACStatus parse_ac_status_from_work_status_bytes(const std::vector<uint8_t>& work
     status.temperature = r.u16() / 10.0;
     // ac_data: [on_or_off_code, mode, temperature, fan_code * 16 + swing_code]
     status.ac_data = r.take(4);
+    status.mode = static_cast<ACMode>(status.ac_data[1]);
+    status.ac_temperature = status.ac_data[2];
+    status.fan_speed = static_cast<ACFanSpeed>(status.ac_data[3] / 16);
+    status.swing = static_cast<ACSwing>(status.ac_data[3] % 16);
     status.temperature_unit = r.u8();
     status.device_type = r.u8();
     

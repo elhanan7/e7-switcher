@@ -16,19 +16,14 @@ std::string SwitchStatus::to_string() const {
 
 std::string ACStatus::to_string() const {
     std::string result;
-    int on_or_off = ac_data[0];
-    int mode = ac_data[1];
-    int ac_temperature  = ac_data[2];
-    int fan_speed = ac_data[3] / 16;
-    int swing = ac_data[3] % 16;
     
     result += "{ wifi_power: " + std::to_string(wifi_power) + ", ";
-    result += "  mode: " + ac_mode_to_string(static_cast<ACMode>(mode)) + ", ";
+    result += "  mode: " + ac_mode_to_string(mode) + ", ";
     result += "  ac_temperature: " + std::to_string(ac_temperature) + ", ";
     result += "  ambient_temperature: " + std::to_string(temperature) + ", ";
-    result += "  on_or_off: " + ac_power_to_string(static_cast<ACPower>(on_or_off)) + ", ";
-    result += "  fan_speed: " + ac_fan_speed_to_string(static_cast<ACFanSpeed>(fan_speed)) + ", ";
-    result += "  swing: " + ac_swing_to_string(static_cast<ACSwing>(swing)) + " }";
+    result += "  on_or_off: " + ac_power_to_string(power_status) + ", ";
+    result += "  fan_speed: " + ac_fan_speed_to_string(fan_speed) + ", ";
+    result += "  swing: " + ac_swing_to_string(swing) + " }";
     return result;
 }
 
