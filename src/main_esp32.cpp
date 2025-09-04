@@ -10,6 +10,7 @@
 #include "secrets.h"
 #include "logger.h"
 #include "compression.h"
+#include <data_structures.h>
 
 const char *tz             = "IST-2IDT,M3.4.4/26,M10.5.0";
 
@@ -56,7 +57,7 @@ void do_rest_day_action_if_needed(bool is_rest_day) {
 void print_device_status() {
   auto& logger = e7_switcher::Logger::instance();
   e7_switcher::E7SwitcherClient client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
-  e7_switcher::LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
+  e7_switcher::SwitchStatus status = client.get_switch_status(E7_SWITCHER_DEVICE_NAME);
 
   logger.infof("Device status: %s", status.to_string().c_str());
 }
@@ -64,7 +65,7 @@ void print_device_status() {
 const int E7_AUTOSHUTDOWN_TIME_SECONDS = 40 * 60;
 
 // Variables to track light status and timing
-e7_switcher::LightStatus last_known_status;
+e7_switcher::SwitchStatus last_known_status;
 unsigned long next_status_check_ms = 0;
 bool status_initialized = false;
 
@@ -72,7 +73,7 @@ bool status_initialized = false;
 unsigned long handle_auto_shutdown() {
     auto& logger = e7_switcher::Logger::instance();
     e7_switcher::E7SwitcherClient client{std::string(E7_SWITCHER_ACCOUNT), std::string(E7_SWITCHER_PASSWORD)};
-    e7_switcher::LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
+    e7_switcher::SwitchStatus status = client.get_switch_status(E7_SWITCHER_DEVICE_NAME);
     
     // Store the latest status
     last_known_status = status;

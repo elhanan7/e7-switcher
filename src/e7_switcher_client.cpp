@@ -164,7 +164,7 @@ void E7SwitcherClient::control_ac(const std::string& device_name, const std::str
     Logger::instance().infof("Received response from \"%s\"", device_name.c_str());
 }
 
-LightStatus E7SwitcherClient::get_light_status(const std::string& device_name) {
+SwitchStatus E7SwitcherClient::get_switch_status(const std::string& device_name) {
     const std::vector<Device>& devices = list_devices();
     auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
     if (it == devices.end()) throw std::runtime_error("Device not found");
@@ -178,7 +178,7 @@ LightStatus E7SwitcherClient::get_light_status(const std::string& device_name) {
     (void)stream_.receive_message(); // drain ack
     ProtocolMessage response = stream_.receive_message();
 
-    return parse_light_status(response.payload);
+    return parse_switch_status(response.payload);
 }
 
 OgeIRDeviceCode E7SwitcherClient::get_ac_ir_config(const std::string &device_name)

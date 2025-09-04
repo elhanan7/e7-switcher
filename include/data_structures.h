@@ -20,7 +20,7 @@ struct Device {
     std::vector<uint8_t> work_status_bytes;
 };
 
-struct LightStatus {
+struct SwitchStatus {
     int wifi_power;
     bool switch_state;
     int remaining_time;

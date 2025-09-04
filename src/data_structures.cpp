@@ -2,7 +2,7 @@
 
 namespace e7_switcher {
 
-std::string LightStatus::to_string() const {
+std::string SwitchStatus::to_string() const {
     std::string result;
     result += "{ wifi_power: " + std::to_string(wifi_power) + ", ";
     result += "  switch_state: " + std::to_string(switch_state) + ", ";

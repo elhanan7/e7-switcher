@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
         
         if (command == "status") {
             logger.info("Getting device status...");
-            LightStatus status = client.get_light_status(E7_SWITCHER_DEVICE_NAME);
+            SwitchStatus status = client.get_switch_status(E7_SWITCHER_DEVICE_NAME);
             logger.infof("Device status: %s", status.to_string().c_str());
         } 
         else if (command == "on") {

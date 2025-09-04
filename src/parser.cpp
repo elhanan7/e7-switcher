@@ -165,9 +165,9 @@ ProtocolMessage parse_protocol_packet(const std::vector<uint8_t>& payload) {
 }
 
 
-LightStatus parse_light_status(const std::vector<uint8_t>& payload) {
+SwitchStatus parse_switch_status(const std::vector<uint8_t>& payload) {
     auto& logger = e7_switcher::Logger::instance();
-    logger.debugf("Parsing light status from %d bytes", payload.size());
+    logger.debugf("Parsing switch status from %d bytes", payload.size());
     Reader r(payload);
     r.take(2); // original cmd
     r.take(2); // original serial
@@ -177,7 +177,7 @@ LightStatus parse_light_status(const std::vector<uint8_t>& payload) {
 
     r.take(32); // device name
 
-    LightStatus status;
+    SwitchStatus status;
     status.online_state = r.u8();
     
     r.take(2); // length of status bytes

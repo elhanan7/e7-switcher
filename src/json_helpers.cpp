@@ -294,11 +294,11 @@ std::string ACStatus::to_string() const {
     // Convert ac_data bytes to hex string
     char ac_data_hex[9]; // 4 bytes = 8 hex chars + null terminator
     for (size_t i = 0; i < ac_data.size() && i < 4; i++) {
-        sprintf(&ac_data_hex[i*2], "%02x", ac_data[i]);
+        snprintf(&ac_data_hex[i*2], sizeof(ac_data_hex), "%02x", ac_data[i]);
     }
     doc["ac_data"] = ac_data_hex;
     
-    doc["temperature_unit"] = temperature_unit;
+    doc["temperature_unit"] = temperature_unit == 0? "C" : "F";
     doc["device_type"] = device_type;
     doc["code_id"] = code_id;
     doc["last_time"] = last_time;
@@ -321,12 +321,12 @@ std::string ACStatus::to_string() const {
     std::string ac_data_hex;
     for (auto byte : ac_data) {
         char hex[3];
-        sprintf(hex, "%02x", byte);
+        snprintf(hex, sizeof(hex), "%02x", byte);
         ac_data_hex += hex;
     }
     j["ac_data"] = ac_data_hex;
     
-    j["temperature_unit"] = temperature_unit;
+    j["temperature_unit"] = temperature_unit == 0? "C" : "F";
     j["device_type"] = device_type;
     j["code_id"] = code_id;
     j["last_time"] = last_time;
