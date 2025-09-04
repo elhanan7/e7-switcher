@@ -40,6 +40,11 @@ int main(int argc, char* argv[]) {
             SwitchStatus status = client.get_switch_status(E7_SWITCHER_DEVICE_NAME);
             logger.infof("Device status: %s", status.to_string().c_str());
         } 
+        else if (command == "ac-status") {
+            logger.info("Getting AC status...");
+            ACStatus status = client.get_ac_status("Work AC");
+            logger.infof("AC status: %s", status.to_string().c_str());
+        }
         else if (command == "on") {
             logger.infof("Turning ON device: %s", E7_SWITCHER_DEVICE_NAME);
             client.control_switch(E7_SWITCHER_DEVICE_NAME, "on");
@@ -52,7 +57,7 @@ int main(int argc, char* argv[]) {
         } 
         else if (command == "ac") {
             logger.info("Getting AC IR config...");
-            client.control_ac("Work AC", "on", ACMode::COOL, 26, ACFanSpeed::FAN_LOW, ACSwing::SWING_ON);
+            client.control_ac("Work AC", "on", ACMode::COOL, 20, ACFanSpeed::FAN_MEDIUM, ACSwing::SWING_ON);
             logger.info("Command sent successfully");
         }
         else {

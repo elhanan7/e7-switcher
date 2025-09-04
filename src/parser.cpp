@@ -192,7 +192,29 @@ SwitchStatus parse_switch_status(const std::vector<uint8_t>& payload) {
     return status;
 }
 
-ACStatus parse_ac_status(const std::vector<uint8_t>& work_status_bytes)
+ACStatus parse_ac_status_from_query_payload(const std::vector<uint8_t>& payload) {
+    auto& logger = e7_switcher::Logger::instance();
+    logger.debugf("Parsing switch status from %d bytes", payload.size());
+    Reader r(payload);
+    r.take(2); // original cmd
+    r.take(2); // original serial
+    r.take(4); // original timestamp
+    r.take(1); // needs to be 0 or 3
+    r.take(2); // length of rest of payload
+
+    r.take(32); // device name
+
+    int online_state = r.u8();
+    
+    int status_bytes_len = r.u16(); // length of status bytes
+    std::vector<uint8_t> status_bytes = r.take(status_bytes_len);
+    ACStatus status = parse_ac_status_from_work_status_bytes(status_bytes);
+    status.online_state = online_state;
+
+    return status;
+}
+
+ACStatus parse_ac_status_from_work_status_bytes(const std::vector<uint8_t>& work_status_bytes)
 {
     auto& logger = e7_switcher::Logger::instance();
     logger.debugf("Parsing AC status from %d bytes", work_status_bytes.size());
@@ -200,13 +222,13 @@ ACStatus parse_ac_status(const std::vector<uint8_t>& work_status_bytes)
     ACStatus status;
     Reader r(work_status_bytes);
     
-    if (work_status_bytes.size() != 32) {
-        logger.error("AC status payload size is not 32 bytes");
+    if ((work_status_bytes.size() != 32) && (work_status_bytes.size() != 30)) {
+        logger.error("AC status payload size is not 32 bytes or 30 bytes");
         return status;
     }
     
     status.wifi_power = r.u8();
-    status.temperature = r.u16();
+    status.temperature = r.u16() / 10.0;
     // ac_data: [on_or_off_code, mode, temperature, fan_code * 16 + swing_code]
     status.ac_data = r.take(4);
     status.temperature_unit = r.u8();

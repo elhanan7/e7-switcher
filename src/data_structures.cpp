@@ -14,4 +14,60 @@ std::string SwitchStatus::to_string() const {
     return result;
 }
 
+std::string ACStatus::to_string() const {
+    std::string result;
+    int on_or_off = ac_data[0];
+    int mode = ac_data[1];
+    int ac_temperature  = ac_data[2];
+    int fan_speed = ac_data[3] / 16;
+    int swing = ac_data[3] % 16;
+    
+    result += "{ wifi_power: " + std::to_string(wifi_power) + ", ";
+    result += "  mode: " + ac_mode_to_string(static_cast<ACMode>(mode)) + ", ";
+    result += "  ac_temperature: " + std::to_string(ac_temperature) + ", ";
+    result += "  ambient_temperature: " + std::to_string(temperature) + ", ";
+    result += "  on_or_off: " + ac_power_to_string(static_cast<ACPower>(on_or_off)) + ", ";
+    result += "  fan_speed: " + ac_fan_speed_to_string(static_cast<ACFanSpeed>(fan_speed)) + ", ";
+    result += "  swing: " + ac_swing_to_string(static_cast<ACSwing>(swing)) + " }";
+    return result;
+}
+
+std::string ac_mode_to_string(ACMode mode) {
+    switch (mode) {
+        case ACMode::AUTO: return "auto";
+        case ACMode::DRY: return "dry";
+        case ACMode::FAN: return "fan";
+        case ACMode::COOL: return "cool";
+        case ACMode::HEAT: return "heat";
+        default: return "unknown";
+    }
+}
+
+std::string ac_fan_speed_to_string(ACFanSpeed fan_speed) {
+    switch (fan_speed) {
+        case ACFanSpeed::FAN_LOW: return "low";
+        case ACFanSpeed::FAN_MEDIUM: return "medium";
+        case ACFanSpeed::FAN_HIGH: return "high";
+        case ACFanSpeed::FAN_AUTO: return "auto";
+        default: return "unknown";
+    }
+}
+
+std::string ac_swing_to_string(ACSwing swing) {
+    switch (swing) {
+        case ACSwing::SWING_OFF: return "off";
+        case ACSwing::SWING_ON: return "on";
+        default: return "unknown";
+    }
+}
+
+std::string ac_power_to_string(ACPower power) {
+    switch (power) {
+        case ACPower::POWER_OFF: return "off";
+        case ACPower::POWER_ON: return "on";
+        default: return "unknown";
+    }
+}
+
+
 } // namespace e7_switcher

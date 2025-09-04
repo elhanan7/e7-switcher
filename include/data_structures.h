@@ -32,9 +32,43 @@ struct SwitchStatus {
     std::string to_string() const;
 };
 
+// AC Mode enum
+enum class ACMode {
+    AUTO = 1,
+    DRY  = 2,
+    FAN  = 3,
+    COOL = 4,
+    HEAT = 5
+};
+
+// AC Fan Speed enum
+enum class ACFanSpeed {
+    FAN_LOW    = 1,
+    FAN_MEDIUM = 2,
+    FAN_HIGH   = 3,
+    FAN_AUTO   = 4
+};
+
+// AC Swing enum
+enum class ACSwing {
+    SWING_OFF = 0,
+    SWING_ON  = 1
+};
+
+// AC Power enum
+enum class ACPower {
+    POWER_OFF = 0,
+    POWER_ON  = 1
+};
+
+std::string ac_mode_to_string(ACMode mode);
+std::string ac_fan_speed_to_string(ACFanSpeed fan_speed);
+std::string ac_swing_to_string(ACSwing swing);
+std::string ac_power_to_string(ACPower power);
+
 struct ACStatus {
     int wifi_power;
-    int temperature;
+    float temperature;
     std::vector<uint8_t> ac_data; // 4 bytes of AC data
     int temperature_unit;
     int device_type;
@@ -47,5 +81,7 @@ struct ACStatus {
 
     std::string to_string() const;
 };
+
+
 
 } // namespace e7_switcher

@@ -181,6 +181,23 @@ SwitchStatus E7SwitcherClient::get_switch_status(const std::string& device_name)
     return parse_switch_status(response.payload);
 }
 
+ACStatus E7SwitcherClient::get_ac_status(const std::string& device_name) {
+    const std::vector<Device>& devices = list_devices();
+    auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
+    if (it == devices.end()) throw std::runtime_error("Device not found");
+
+    if (it->type != "0E01") throw std::runtime_error("Device type not supported");
+
+    std::vector<uint8_t> query_packet = build_device_query_payload(
+        session_id_, user_id_, communication_secret_key_, it->did);
+
+    stream_.send_message(query_packet);
+    (void)stream_.receive_message(); // drain ack
+    ProtocolMessage response = stream_.receive_message();
+
+    return parse_ac_status_from_query_payload(response.payload);
+}
+
 OgeIRDeviceCode E7SwitcherClient::get_ac_ir_config(const std::string &device_name)
 {
     // Check if the device code is already in the cache
@@ -198,7 +215,7 @@ OgeIRDeviceCode E7SwitcherClient::get_ac_ir_config(const std::string &device_nam
 
     if (it->type != "0E01") throw std::runtime_error("Device type not supported");
 
-    std::string ac_code_id = parse_ac_status(it->work_status_bytes).code_id;
+    std::string ac_code_id = parse_ac_status_from_work_status_bytes(it->work_status_bytes).code_id;
 
     std::vector<uint8_t> query_packet = build_ac_ir_config_query_payload(
         session_id_, user_id_, communication_secret_key_, it->did, ac_code_id);
