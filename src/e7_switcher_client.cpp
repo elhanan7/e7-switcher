@@ -1,6 +1,6 @@
 #include "e7_switcher_client.h"
 #include "constants.h"
-#include "packets.h"
+#include "messages.h"
 #include "parser.h"
 #include "crypto.h"
 #include "base64_decode.h"
@@ -33,8 +33,8 @@ E7SwitcherClient::~E7SwitcherClient() {
 
 
 PhoneLoginRecord E7SwitcherClient::login(const std::string& account, const std::string& password) {
-    std::vector<uint8_t> login_packet = build_login_payload(account, password);
-    stream_.send_message(login_packet);
+    ProtocolMessage login_message = build_login_message(account, password);
+    stream_.send_message(login_message);
     ProtocolMessage received_message = stream_.receive_message();
     std::vector<uint8_t> decrypted_payload = decrypt_hex_ecb_pkcs7(received_message.payload, AES_KEY_2_50);
     PhoneLoginRecord login_data = parse_phone_login(decrypted_payload);
@@ -48,8 +48,8 @@ PhoneLoginRecord E7SwitcherClient::login(const std::string& account, const std::
 
 const std::vector<Device>& E7SwitcherClient::list_devices() {
     if (!devices_) {
-        std::vector<uint8_t> pkt = build_device_list_payload(session_id_, user_id_, communication_secret_key_);
-        stream_.send_message(pkt);
+        ProtocolMessage message = build_device_list_message(session_id_, user_id_, communication_secret_key_);
+        stream_.send_message(message);
         ProtocolMessage received_message = stream_.receive_message();
         std::string payload_str(received_message.payload.begin(), received_message.payload.end());
         size_t start = payload_str.find("{");
@@ -83,11 +83,11 @@ void E7SwitcherClient::control_switch(const std::string& device_name, const std:
         enc_pwd_bytes, std::string(communication_secret_key_.begin(), communication_secret_key_.end()));
     int on_or_off = (action == "on") ? 1 : 0;
 
-    std::vector<uint8_t> control_packet = build_switch_control_payload(
+    ProtocolMessage control_message = build_switch_control_message(
         session_id_, user_id_, communication_secret_key_, it->did, dec_pwd_bytes, on_or_off);
 
     Logger::instance().infof("Sending control command to \"%s\"...", device_name.c_str());
-    stream_.send_message(control_packet);                 // send
+    stream_.send_message(control_message);                 // send
     (void)stream_.receive_message();  // ignore ack, but drain it
     Logger::instance().infof("Control command sent to \"%s\"", device_name.c_str());
 
@@ -117,11 +117,11 @@ void E7SwitcherClient::control_ac(const std::string& device_name, const std::str
         power_value, 
         resolver);
     
-    std::vector<uint8_t> control_packet = build_ac_control_payload(
+    ProtocolMessage control_message = build_ac_control_message(
         session_id_, user_id_, communication_secret_key_, it->did, dec_pwd_bytes, control_str, operationTime);
 
     Logger::instance().infof("Sending control command to \"%s\"...", device_name.c_str());
-    stream_.send_message(control_packet);                // send
+    stream_.send_message(control_message);                // send
     (void)stream_.receive_message();  // ignore ack, but drain it
     Logger::instance().infof("Control command sent to \"%s\"", device_name.c_str());
 
@@ -138,10 +138,10 @@ SwitchStatus E7SwitcherClient::get_switch_status(const std::string& device_name)
 
     if (it->type != "0F04") throw std::runtime_error("Device type not supported");
 
-    std::vector<uint8_t> query_packet = build_device_query_payload(
+    ProtocolMessage query_message = build_device_query_message(
         session_id_, user_id_, communication_secret_key_, it->did);
 
-    stream_.send_message(query_packet);
+    stream_.send_message(query_message);
     (void)stream_.receive_message(); // drain ack
     ProtocolMessage response = stream_.receive_message();
 
@@ -155,10 +155,10 @@ ACStatus E7SwitcherClient::get_ac_status(const std::string& device_name) {
 
     if (it->type != "0E01") throw std::runtime_error("Device type not supported");
 
-    std::vector<uint8_t> query_packet = build_device_query_payload(
+    ProtocolMessage query_message = build_device_query_message(
         session_id_, user_id_, communication_secret_key_, it->did);
 
-    stream_.send_message(query_packet);
+    stream_.send_message(query_message);
     (void)stream_.receive_message(); // drain ack
     ProtocolMessage response = stream_.receive_message();
 
@@ -184,10 +184,10 @@ OgeIRDeviceCode E7SwitcherClient::get_ac_ir_config(const std::string &device_nam
 
     std::string ac_code_id = parse_ac_status_from_work_status_bytes(it->work_status_bytes).code_id;
 
-    std::vector<uint8_t> query_packet = build_ac_ir_config_query_payload(
+    ProtocolMessage query_message = build_ac_ir_config_query_message(
         session_id_, user_id_, communication_secret_key_, it->did, ac_code_id);
 
-    stream_.send_message(query_packet);
+    stream_.send_message(query_message);
     ProtocolMessage response = stream_.receive_message();
 
     // drop the first 3 bytes of the payload, to use as compressed data

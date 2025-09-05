@@ -85,6 +85,23 @@ void MessageStream::send_message(const std::vector<uint8_t>& data) {
     }
 }
 
+void MessageStream::send_message(const ProtocolMessage& message) {
+    // Assemble the complete message bytes from the ProtocolMessage object
+    std::vector<uint8_t> data;
+    
+    // Add header
+    data.insert(data.end(), message.raw_header.begin(), message.raw_header.end());
+    
+    // Add payload
+    data.insert(data.end(), message.payload.begin(), message.payload.end());
+    
+    // Add CRC
+    data.insert(data.end(), message.crc.begin(), message.crc.end());
+    
+    // Send the assembled message
+    send_message(data);
+}
+
 ProtocolMessage MessageStream::receive_message(int timeout_ms) {
     if (sock_ == -1) throw std::runtime_error("Not connected");
 

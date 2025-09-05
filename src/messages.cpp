@@ -5,7 +5,7 @@
 #define E7_PLATFORM_DESKTOP 1
 // Desktop platform - no Arduino headers needed
 #endif
-#include "packets.h"
+#include "messages.h"
 #include "constants.h"
 #include "crc.h"
 #include "crypto.h"
@@ -39,24 +39,15 @@ private:
 
 namespace {
 
-std::vector<uint8_t> assemble_and_sign_message(
-    const std::vector<uint8_t>& header,
-    const std::vector<uint8_t>& payload,
-    const std::vector<uint8_t>& communication_secret_key
-) {
-    std::vector<uint8_t> packet = header;
-    if (!payload.empty()) {
-        packet.insert(packet.end(), payload.begin(), payload.end());
-    }
-
-    std::vector<uint8_t> crc = get_complete_legal_crc(packet, communication_secret_key);
-    packet.insert(packet.end(), crc.begin(), crc.end());
-
-    return packet;
+std::vector<uint8_t> fixed_len_str(const std::string& s, size_t n) {
+    std::vector<uint8_t> b(n, 0);
+    std::memcpy(b.data(), s.c_str(), std::min(s.length(), n));
+    return b;
 }
 
-std::vector<uint8_t> build_header(
-    uint16_t payload_len,
+} // namespace
+
+ProtocolMessage build_protocol_message(
     uint16_t cmd_code,
     int32_t session,
     uint16_t serial,
@@ -64,11 +55,14 @@ std::vector<uint8_t> build_header(
     uint8_t direction,
     uint8_t errcode,
     int32_t user_id,
+    const std::vector<uint8_t>& payload,
+    const std::vector<uint8_t>& communication_secret_key,
     bool is_version_2
 ) {
-    std::vector<uint8_t> hdr(HEADER_SIZE, 0);
-    Writer w(hdr);
-    uint16_t total_len = payload_len + HEADER_SIZE + CRC_TAIL_SIZE;
+    // Create a header
+    std::vector<uint8_t> header(HEADER_SIZE, 0);
+    Writer w(header);
+    uint16_t total_len = payload.size() + HEADER_SIZE + CRC_TAIL_SIZE;
 
     w.u16(MAGIC1); // [0, 2]
     w.u16(total_len); // [2, 4]
@@ -87,16 +81,34 @@ std::vector<uint8_t> build_header(
     w.put_constant(0, 10); // [28, 38] reserved
     w.u16(MAGIC2); // [38, 40]
 
-    return hdr;
-}
+    // Create the full packet for CRC calculation
+    std::vector<uint8_t> packet = header;
+    if (!payload.empty()) {
+        packet.insert(packet.end(), payload.begin(), payload.end());
+    }
 
-std::vector<uint8_t> fixed_len_str(const std::string& s, size_t n) {
-    std::vector<uint8_t> b(n, 0);
-    std::memcpy(b.data(), s.c_str(), std::min(s.length(), n));
-    return b;
-}
+    // Calculate CRC
+    std::vector<uint8_t> crc = get_complete_legal_crc(packet, communication_secret_key);
 
-} // namespace
+    // Create and populate the ProtocolMessage
+    ProtocolMessage message;
+    message.start_flag = MAGIC1;
+    message.length = total_len;
+    message.version = version;
+    message.cmd = cmd_code;
+    message.session = session;
+    message.serial = serial;
+    message.direction = direction;
+    message.err_code = errcode;
+    message.control_attr = control_attr;
+    message.user_id = user_id;
+    message.timestamp = ts;
+    message.raw_header = header;
+    message.payload = payload;
+    message.crc = crc;
+
+    return message;
+}
 
 Writer::Writer(std::vector<uint8_t>& data) : data_(data), p_(0) {}
 
@@ -147,7 +159,7 @@ void Writer::_need(size_t n) {
     }
 }
 
-std::vector<uint8_t> build_login_payload(
+ProtocolMessage build_login_message(
     const std::string& account,
     const std::string& password
 ) {
@@ -186,20 +198,41 @@ std::vector<uint8_t> build_login_payload(
 
     std::vector<uint8_t> encrypted = encrypt_to_hex_ecb_pkcs7(buf, AES_KEY_2_50);
 
-    std::vector<uint8_t> header = build_header(encrypted.size(), CMD_LOGIN, 0, serial, control_attr, direction, errcode, 0, true);
-    return assemble_and_sign_message(header, encrypted, {});
+    // Use the new build_protocol_message function
+    return build_protocol_message(
+        CMD_LOGIN,      // cmd_code
+        0,              // session
+        serial,         // serial
+        control_attr,   // control_attr
+        direction,      // direction
+        errcode,        // errcode
+        0,              // user_id
+        encrypted,      // payload
+        {},             // communication_secret_key
+        true            // is_version_2
+    );
 }
 
-std::vector<uint8_t> build_device_list_payload(
+ProtocolMessage build_device_list_message(
     int32_t session_id,
     int32_t user_id,
     const std::vector<uint8_t>& communication_secret_key
 ) {
-    std::vector<uint8_t> header = build_header(0, CMD_DEVICE_LIST, session_id, 1102, 0, 1, 0, user_id, false);
-    return assemble_and_sign_message(header, {}, communication_secret_key);
+    return build_protocol_message(
+        CMD_DEVICE_LIST,  // cmd_code
+        session_id,       // session
+        1102,             // serial
+        0,                // control_attr
+        1,                // direction
+        0,                // errcode
+        user_id,          // user_id
+        {},               // payload (empty)
+        communication_secret_key, // communication_secret_key
+        false             // is_version_2
+    );
 }
 
-std::vector<uint8_t> build_switch_control_payload(
+ProtocolMessage build_switch_control_message(
     int32_t session_id,
     int32_t user_id,
     const std::vector<uint8_t>& communication_secret_key,
@@ -228,14 +261,24 @@ std::vector<uint8_t> build_switch_control_payload(
     w.u8(on_or_off);
     w.u32(0); // closing time
     
-    std::vector<uint8_t> header = build_header(buf.size(), CMD_DEVICE_CONTROL, session_id, 1104, 0, 1, 0, user_id, false);
-    auto packet = assemble_and_sign_message(header, buf, communication_secret_key);
+    auto message = build_protocol_message(
+        CMD_DEVICE_CONTROL, // cmd_code
+        session_id,         // session
+        1104,               // serial
+        0,                  // control_attr
+        1,                  // direction
+        0,                  // errcode
+        user_id,            // user_id
+        buf,                // payload
+        communication_secret_key, // communication_secret_key
+        false               // is_version_2
+    );
+    
     logger.debugf("Built device control packet for device %d", device_id);
-
-    return packet;
+    return message;
 }
 
-std::vector<uint8_t> build_device_query_payload(
+ProtocolMessage build_device_query_message(
     int32_t session_id,
     int32_t user_id,
     const std::vector<uint8_t>& communication_secret_key,
@@ -246,11 +289,21 @@ std::vector<uint8_t> build_device_query_payload(
 
     w.u32(device_id);
     
-    std::vector<uint8_t> header = build_header(buf.size(), CMD_DEVICE_QUERY, session_id, 1104, 0, 1, 0, user_id, false);
-    return assemble_and_sign_message(header, buf, communication_secret_key);
+    return build_protocol_message(
+        CMD_DEVICE_QUERY,  // cmd_code
+        session_id,        // session
+        1104,              // serial
+        0,                 // control_attr
+        1,                 // direction
+        0,                 // errcode
+        user_id,           // user_id
+        buf,               // payload
+        communication_secret_key, // communication_secret_key
+        false              // is_version_2
+    );
 }
 
-std::vector<uint8_t> build_ac_ir_config_query_payload(int32_t session_id, int32_t user_id, const std::vector<uint8_t> &communication_secret_key, int32_t device_id, std::string ac_code_id)
+ProtocolMessage build_ac_ir_config_query_message(int32_t session_id, int32_t user_id, const std::vector<uint8_t> &communication_secret_key, int32_t device_id, std::string ac_code_id)
 {
     std::vector<uint8_t> buf(16, 0);
     Writer w(buf);
@@ -264,11 +317,21 @@ std::vector<uint8_t> build_ac_ir_config_query_payload(int32_t session_id, int32_
     
     w.put(ac_code_id_bytes);
     
-    std::vector<uint8_t> header = build_header(buf.size(), CMD_AC_IR_CONFIG_QUERY, session_id, 1110, 0, 1, 0, user_id, false);
-    return assemble_and_sign_message(header, buf, communication_secret_key);
+    return build_protocol_message(
+        CMD_AC_IR_CONFIG_QUERY, // cmd_code
+        session_id,             // session
+        1110,                   // serial
+        0,                      // control_attr
+        1,                      // direction
+        0,                      // errcode
+        user_id,                // user_id
+        buf,                    // payload
+        communication_secret_key, // communication_secret_key
+        false                   // is_version_2
+    );
 }
 
-std::vector<uint8_t> build_ac_control_payload(int32_t session_id, int32_t user_id,
+ProtocolMessage build_ac_control_message(int32_t session_id, int32_t user_id,
                                               const std::vector<uint8_t> &communication_secret_key, int32_t device_id, 
                                               const std::vector<uint8_t> &device_pwd, const std::string &control_str,
                                               int operationTime)
@@ -292,8 +355,18 @@ std::vector<uint8_t> build_ac_control_payload(int32_t session_id, int32_t user_i
     w.u32(operationTime);
     w.put(control_str);
 
-    std::vector<uint8_t> header = build_header(buf.size(), CMD_DEVICE_CONTROL, session_id, 1111, 0, 1, 0, user_id, false);
-    return assemble_and_sign_message(header, buf, communication_secret_key);
+    return build_protocol_message(
+        CMD_DEVICE_CONTROL,  // cmd_code
+        session_id,          // session
+        1111,                // serial
+        0,                   // control_attr
+        1,                   // direction
+        0,                   // errcode
+        user_id,             // user_id
+        buf,                 // payload
+        communication_secret_key, // communication_secret_key
+        false                // is_version_2
+    );
 }
 
 } // namespace e7_switcher
