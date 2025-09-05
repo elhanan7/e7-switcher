@@ -41,13 +41,7 @@ const std::vector<Device>& E7SwitcherClient::list_devices() {
         ProtocolMessage message = build_device_list_message(session_id_, user_id_, communication_secret_key_);
         stream_.send_message(message);
         ProtocolMessage received_message = stream_.receive_message();
-        std::string payload_str(received_message.payload.begin(), received_message.payload.end());
-        size_t start = payload_str.find("{");
-        size_t end   = payload_str.rfind("}");
-        if (start == std::string::npos || end == std::string::npos || end <= start)
-            throw std::runtime_error("No valid JSON found in response");
-        std::string json_str = payload_str.substr(start, end - start + 1);
-        json_str.erase(std::remove(json_str.begin(), json_str.end(), '\0'), json_str.end());
+        std::string json_str(received_message.payload.begin(), received_message.payload.end());
 
         std::vector<Device> devices;
         if (!extract_device_list(json_str, devices)) {
