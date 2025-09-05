@@ -9,6 +9,7 @@
 #include "json_helpers.h"
 
 #include <algorithm>
+#include <stdexcept>
 
 namespace e7_switcher {
 

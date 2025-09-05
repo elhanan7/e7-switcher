@@ -55,6 +55,10 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "typeindex": "cpp",
+        "complex": "cpp",
+        "mutex": "cpp",
+        "variant": "cpp"
     }
 }

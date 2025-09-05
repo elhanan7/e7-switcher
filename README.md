@@ -1,108 +1,162 @@
-# Switcher E7 Control
+# Switcher E7 Library
 
-A cross-platform library for controlling Switcher E7 devices from both ESP32 and desktop platforms (Mac/Linux).
+A cross-platform library for controlling Switcher E7 smart home devices from both ESP32 and desktop platforms (Mac/Linux).
 
 ## Features
 
-- Control Switcher E7 devices
+- Control Switcher E7 devices (switches, AC units, etc.)
 - Cross-platform compatibility (ESP32 and Mac/Linux)
 - Platform-independent logging system
 - JSON parsing for both platforms
 - AES encryption support
+- Easy integration with PlatformIO and CMake projects
 
-## Building for ESP32
+## Installation
 
-This project uses PlatformIO for ESP32 builds.
+### Using PlatformIO
 
-1. Install PlatformIO (if not already installed)
-2. Open the project in PlatformIO
-3. Build and upload to your ESP32 device:
+Add the library to your `platformio.ini` file:
 
-```bash
-pio run -t upload
+```ini
+lib_deps = 
+    https://github.com/elhanan7/e7-switcher.git
 ```
 
-## Building for Mac/Linux
+### Using CMake
 
-The project uses CMake for desktop builds.
+There are multiple ways to include this library in your CMake project:
 
-### Prerequisites
+#### Option 1: Using FetchContent
 
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+    e7-switcher
+    GIT_REPOSITORY https://github.com/elhanan7/e7-switcher.git
+    GIT_TAG main  # or specific tag/commit
+)
+FetchContent_MakeAvailable(e7-switcher)
+
+# Link with your target
+target_link_libraries(your_target PRIVATE e7-switcher)
+```
+
+#### Option 2: Using find_package
+
+First, install the library:
+
+```bash
+git clone https://github.com/elhanan7/e7-switcher.git
+cd e7-switcher
+mkdir build && cd build
+cmake ..
+make
+sudo make install
+```
+
+Then in your CMakeLists.txt:
+
+```cmake
+find_package(e7-switcher REQUIRED)
+target_link_libraries(your_target PRIVATE e7-switcher::e7-switcher)
+```
+
+## Dependencies
+
+### For ESP32
+- Arduino framework
+- ArduinoJson (v7.0.4 or higher)
+- zlib-PIO
+
+### For Desktop
 - CMake 3.10 or higher
 - C++17 compatible compiler
 - OpenSSL development libraries
-- nlohmann_json library
-
-### Installation of dependencies
-
-#### macOS (using Homebrew)
-
-```bash
-brew install openssl cmake
-brew install nlohmann-json
-```
-
-#### Linux (Ubuntu/Debian)
-
-```bash
-sudo apt-get update
-sudo apt-get install cmake libssl-dev
-sudo apt-get install nlohmann-json3-dev
-```
-
-### Building
-
-```bash
-mkdir build
-cd build
-cmake ..
-make
-```
+- nlohmann_json library (v3.11.2 or higher)
+- zlib
 
 ## Usage
 
-### Initialization
-
-Initialize the logger at the beginning of your application:
+### Basic Usage
 
 ```cpp
+#include "e7_switcher_client.h"
 #include "logger.h"
 
-int main() {
-    e7_switcher::Logger::initialize();
-    // Your code here
-    return 0;
+// Initialize the logger
+e7_switcher::Logger::initialize();
+auto& logger = e7_switcher::Logger::instance();
+
+// Create client with your credentials
+e7_switcher::E7SwitcherClient client{"your_account", "your_password"};
+
+// List all devices
+const auto& devices = client.list_devices();
+for (const auto& device : devices) {
+    logger.infof("Device: %s (Type: %s)", device.name.c_str(), device.type.c_str());
 }
+
+// Control a switch
+client.control_switch("Your Switch Name", "on");  // or "off"
+
+// Get switch status
+e7_switcher::SwitchStatus status = client.get_switch_status("Your Switch Name");
+logger.infof("Switch status: %s", status.to_string().c_str());
+
+// Control an AC unit
+client.control_ac(
+    "Your AC Name",
+    "on",                        // "on" or "off"
+    e7_switcher::ACMode::COOL,  // COOL, HEAT, FAN, DRY, AUTO
+    22,                          // temperature
+    e7_switcher::ACFanSpeed::FAN_MEDIUM,  // FAN_LOW, FAN_MEDIUM, FAN_HIGH, FAN_AUTO
+    e7_switcher::ACSwing::SWING_ON        // SWING_OFF, SWING_ON, SWING_HORIZONTAL, SWING_VERTICAL
+);
 ```
 
-### Logging
+## Examples
 
-```cpp
-#include "logger.h"
+The library includes examples for both ESP32 and desktop platforms:
 
-void some_function() {
-    auto& logger = e7_switcher::Logger::instance();
-    logger.info("This is an info message");
-    logger.debugf("Debug with formatting: %d", 42);
-}
+### ESP32 Example
+
+A simple example showing how to connect to WiFi and control Switcher devices from an ESP32.
+
+```bash
+cd examples/esp32_example
+pio run -t upload
 ```
 
-### JSON Parsing
+### Desktop Example
+
+A command-line example for controlling devices from desktop platforms.
+
+```bash
+cd examples/desktop_example
+pio run
+# Or with CMake:
+mkdir build && cd build
+cmake .. -DBUILD_EXAMPLES=ON
+make
+./e7-switcher-desktop-example status  # Get device status
+./e7-switcher-desktop-example on      # Turn device on
+./e7-switcher-desktop-example off     # Turn device off
+```
+
+## Configuration
+
+Create a `secrets.h` file with your credentials:
 
 ```cpp
-#include "json_helpers.h"
+#pragma once
 
-void parse_json_example(const std::string& json_str) {
-    std::vector<e7_switcher::Device> devices;
-    if (e7_switcher::extract_device_list(json_str, devices)) {
-        // Process devices
-    }
-    
-    bool is_rest_day;
-    if (e7_switcher::extract_is_rest_day(json_str, is_rest_day)) {
-        // Use is_rest_day value
-    }
-}
+#define E7_SWITCHER_ACCOUNT "your_account"
+#define E7_SWITCHER_PASSWORD "your_password"
+#define E7_SWITCHER_DEVICE_NAME "your_device_name"
+
+// For ESP32 only
+#define E7_SWITCHER_WIFI_SSID "your_wifi_ssid"
+#define E7_SWITCHER_WIFI_PASSWORD "your_wifi_password"
 ```
 
 ## License

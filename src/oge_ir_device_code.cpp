@@ -1,6 +1,8 @@
 #include "oge_ir_device_code.h"
 #include "json_helpers.h"
 
+#include <stdexcept>
+
 namespace e7_switcher {
 // --- Static token arrays ---------------------------------------------------
 const std::array<std::string,5> OgeIRDeviceCode::modes      {"aa","ad","aw","ar","ah"};

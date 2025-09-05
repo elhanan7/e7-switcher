@@ -1,0 +1,42 @@
+{
+  "name": "e7-switcher",
+  "version": "1.0.0",
+  "description": "Switcher E7 client library for controlling smart home devices",
+  "keywords": "switcher, smart home, iot, esp32",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/elhanan7/e7-switcher.git"
+  },
+  "authors": [
+    {
+      "name": "Elhanan Ilani",
+      "email": "elhanan.ilani@gmail.com",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/elhanan7/e7-switcher",
+  "dependencies": {
+    "bblanchon/ArduinoJson": "^7.0.4",
+    "jkirsons/zlib-PIO": "*"
+  },
+  "frameworks": ["arduino", "espidf"],
+  "platforms": ["espressif32", "native"],
+  "build": {
+    "includeDir": "include",
+    "srcDir": "src",
+    "libArchive": true,
+    "flags": [
+      "-std=gnu++17"
+    ]
+  },
+  "export": {
+    "exclude": [
+      "examples/*/build",
+      "examples/*/.pio",
+      ".git",
+      ".pio",
+      "build"
+    ]
+  }
+}
