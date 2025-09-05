@@ -8,17 +8,7 @@
 #include "compression.h"
 #include "json_helpers.h"
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <stdexcept>
 #include <algorithm>
-#include <iostream>
-#include <thread>
-#include <chrono>
-#include <cstring>
-#include <cstdint>
 
 namespace e7_switcher {
 
@@ -71,20 +61,16 @@ const std::vector<Device>& E7SwitcherClient::list_devices() {
 
 void E7SwitcherClient::control_switch(const std::string& device_name, const std::string& action) {
     Logger::instance().debug("Start of control_device");
-    const std::vector<Device>& devices = list_devices();
     Logger::instance().debug("Got device list");
-    auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
-    if (it == devices.end()) throw std::runtime_error("Device not found");
+    const Device& device = find_device_by_name_and_type(device_name, DEVICE_TYPE_SWITCH);
 
-    if (it->type != "0F04") throw std::runtime_error("Device type not supported");
-
-    std::vector<unsigned char> enc_pwd_bytes = base64_decode(it->visit_pwd);
+    std::vector<unsigned char> enc_pwd_bytes = base64_decode(device.visit_pwd);
     std::vector<uint8_t> dec_pwd_bytes = decrypt_hex_ecb_pkcs7(
         enc_pwd_bytes, std::string(communication_secret_key_.begin(), communication_secret_key_.end()));
     int on_or_off = (action == "on") ? 1 : 0;
 
     ProtocolMessage control_message = build_switch_control_message(
-        session_id_, user_id_, communication_secret_key_, it->did, dec_pwd_bytes, on_or_off);
+        session_id_, user_id_, communication_secret_key_, device.did, dec_pwd_bytes, on_or_off);
 
     Logger::instance().infof("Sending control command to \"%s\"...", device_name.c_str());
     stream_.send_message(control_message);                 // send
@@ -97,13 +83,9 @@ void E7SwitcherClient::control_switch(const std::string& device_name, const std:
 }
 
 void E7SwitcherClient::control_ac(const std::string& device_name, const std::string& action, ACMode mode, int temperature, ACFanSpeed fan_speed, ACSwing swing, int operationTime) {
-    const std::vector<Device>& devices = list_devices();
-    auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
-    if (it == devices.end()) throw std::runtime_error("Device not found");
+    const Device& device = find_device_by_name_and_type(device_name, DEVICE_TYPE_AC);
 
-    if (it->type != "0E01") throw std::runtime_error("Device type not supported");
-
-    std::vector<unsigned char> enc_pwd_bytes = base64_decode(it->visit_pwd);
+    std::vector<unsigned char> enc_pwd_bytes = base64_decode(device.visit_pwd);
     std::vector<uint8_t> dec_pwd_bytes = decrypt_hex_ecb_pkcs7(
         enc_pwd_bytes, std::string(communication_secret_key_.begin(), communication_secret_key_.end()));
 
@@ -118,7 +100,7 @@ void E7SwitcherClient::control_ac(const std::string& device_name, const std::str
         resolver);
     
     ProtocolMessage control_message = build_ac_control_message(
-        session_id_, user_id_, communication_secret_key_, it->did, dec_pwd_bytes, control_str, operationTime);
+        session_id_, user_id_, communication_secret_key_, device.did, dec_pwd_bytes, control_str, operationTime);
 
     Logger::instance().infof("Sending control command to \"%s\"...", device_name.c_str());
     stream_.send_message(control_message);                // send
@@ -132,14 +114,10 @@ void E7SwitcherClient::control_ac(const std::string& device_name, const std::str
 }
 
 SwitchStatus E7SwitcherClient::get_switch_status(const std::string& device_name) {
-    const std::vector<Device>& devices = list_devices();
-    auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
-    if (it == devices.end()) throw std::runtime_error("Device not found");
-
-    if (it->type != "0F04") throw std::runtime_error("Device type not supported");
+    const Device& device = find_device_by_name_and_type(device_name, DEVICE_TYPE_SWITCH);
 
     ProtocolMessage query_message = build_device_query_message(
-        session_id_, user_id_, communication_secret_key_, it->did);
+        session_id_, user_id_, communication_secret_key_, device.did);
 
     stream_.send_message(query_message);
     (void)stream_.receive_message(); // drain ack
@@ -149,14 +127,10 @@ SwitchStatus E7SwitcherClient::get_switch_status(const std::string& device_name)
 }
 
 ACStatus E7SwitcherClient::get_ac_status(const std::string& device_name) {
-    const std::vector<Device>& devices = list_devices();
-    auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
-    if (it == devices.end()) throw std::runtime_error("Device not found");
-
-    if (it->type != "0E01") throw std::runtime_error("Device type not supported");
+    const Device& device = find_device_by_name_and_type(device_name, DEVICE_TYPE_AC);
 
     ProtocolMessage query_message = build_device_query_message(
-        session_id_, user_id_, communication_secret_key_, it->did);
+        session_id_, user_id_, communication_secret_key_, device.did);
 
     stream_.send_message(query_message);
     (void)stream_.receive_message(); // drain ack
@@ -176,16 +150,12 @@ OgeIRDeviceCode E7SwitcherClient::get_ac_ir_config(const std::string &device_nam
 
     // Not in cache, fetch from server
     Logger::instance().infof("Fetching IR device code for \"%s\"", device_name.c_str());
-    const std::vector<Device>& devices = list_devices();
-    auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
-    if (it == devices.end()) throw std::runtime_error("Device not found");
+    const Device& device = find_device_by_name_and_type(device_name, DEVICE_TYPE_AC);
 
-    if (it->type != "0E01") throw std::runtime_error("Device type not supported");
-
-    std::string ac_code_id = parse_ac_status_from_work_status_bytes(it->work_status_bytes).code_id;
+    std::string ac_code_id = parse_ac_status_from_work_status_bytes(device.work_status_bytes).code_id;
 
     ProtocolMessage query_message = build_ac_ir_config_query_message(
-        session_id_, user_id_, communication_secret_key_, it->did, ac_code_id);
+        session_id_, user_id_, communication_secret_key_, device.did, ac_code_id);
 
     stream_.send_message(query_message);
     ProtocolMessage response = stream_.receive_message();
@@ -203,6 +173,17 @@ OgeIRDeviceCode E7SwitcherClient::get_ac_ir_config(const std::string &device_nam
     Logger::instance().infof("Cached IR device code for \"%s\"", device_name.c_str());
 
     return irCodeResolver;
+}
+
+// Helper method implementation
+const Device& E7SwitcherClient::find_device_by_name_and_type(const std::string& device_name, const std::string& expected_type) {
+    const std::vector<Device>& devices = list_devices();
+    auto it = std::find_if(devices.begin(), devices.end(), [&](const Device& d) { return d.name == device_name; });
+    if (it == devices.end()) throw std::runtime_error("Device not found");
+
+    if (it->type != expected_type) throw std::runtime_error("Device type not supported");
+    
+    return *it;
 }
 
 } // namespace e7_switcher

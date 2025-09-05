@@ -13,6 +13,11 @@ namespace e7_switcher {
 
 class E7SwitcherClient {
 public:
+    // Device type constants
+    static constexpr const char* DEVICE_TYPE_AC = "0E01";
+    static constexpr const char* DEVICE_TYPE_SWITCH = "0F04";
+    
+public:
     E7SwitcherClient(const std::string& account, const std::string& password);
     ~E7SwitcherClient();
     
@@ -40,6 +45,9 @@ private:
     
     // Internal methods
     PhoneLoginRecord login(const std::string& account, const std::string& password);
+    
+    // Helper method to find and validate a device
+    const Device& find_device_by_name_and_type(const std::string& device_name, const std::string& expected_type);
 };
 
 } // namespace e7_switcher
