@@ -2,9 +2,12 @@
 #include "constants.h"
 #include "parser.h"
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <stdexcept>
 #include <iostream>
+#include <cstring>
 
 namespace e7_switcher {
 
@@ -12,21 +15,63 @@ namespace {
 inline uint16_t le16(const uint8_t* p) { return static_cast<uint16_t>(p[0] | (p[1] << 8)); }
 }
 
-MessageStream::MessageStream() : sock_(-1) {}
+MessageStream::MessageStream() : host_(""), port_(0), timeout_(5), sock_(-1) {}
 
 MessageStream::~MessageStream() {
-    // We don't close the socket here as it's managed by the caller
+    close();
 }
 
-void MessageStream::connect(int sock) {
-    sock_ = sock;
+void MessageStream::connect_to_server(const std::string& host, int port, int timeout_seconds) {
+    host_ = host;
+    port_ = port;
+    timeout_ = timeout_seconds;
+    
+    create_socket();
+    
+    struct sockaddr_in serv_addr{};
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(port_);
+    if (inet_pton(AF_INET, host_.c_str(), &serv_addr.sin_addr) <= 0)
+        throw std::runtime_error("Invalid address/ Address not supported");
+
+    if (::connect(sock_, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+        throw std::runtime_error("Connection Failed");
+
+    set_socket_timeout(timeout_);
+    
+    // Clear the input buffer
     inbuf_.clear();
 }
 
-void MessageStream::disconnect() {
-    sock_ = -1;
-    inbuf_.clear();
+void MessageStream::close() {
+    if (sock_ != -1) {
+        ::close(sock_);
+        sock_ = -1;
+        inbuf_.clear();
+    }
 }
+
+bool MessageStream::is_connected() const {
+    return sock_ != -1;
+}
+
+void MessageStream::create_socket() {
+    // Close existing socket if any
+    if (sock_ != -1) {
+        ::close(sock_);
+    }
+    
+    sock_ = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock_ < 0) throw std::runtime_error("Failed to create socket");
+}
+
+void MessageStream::set_socket_timeout(int timeout_seconds) {
+    struct timeval tv{};
+    tv.tv_sec = timeout_seconds;
+    tv.tv_usec = 0;
+    setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+}
+
 
 void MessageStream::send_message(const std::vector<uint8_t>& data) {
     if (sock_ == -1) throw std::runtime_error("Not connected");

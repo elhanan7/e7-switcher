@@ -23,47 +23,14 @@
 namespace e7_switcher {
 
 E7SwitcherClient::E7SwitcherClient(const std::string& account, const std::string& password)
-    : host_(IP_HUB), port_(PORT_HUB), timeout_(5), sock_(-1), session_id_(0), user_id_(0) {
-    connect();
+    : session_id_(0), user_id_(0) {
+    stream_.connect_to_server(IP_HUB, PORT_HUB, 5);
     login(account, password);
 }
 
 E7SwitcherClient::~E7SwitcherClient() {
-    if (sock_ != -1) {
-        ::close(sock_);
-    }
 }
 
-void E7SwitcherClient::connect() {
-    sock_ = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock_ < 0) throw std::runtime_error("Failed to create socket");
-
-    struct sockaddr_in serv_addr{};
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port_);
-    if (inet_pton(AF_INET, host_.c_str(), &serv_addr.sin_addr) <= 0)
-        throw std::runtime_error("Invalid address/ Address not supported");
-
-    if (::connect(sock_, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-        throw std::runtime_error("Connection Failed");
-
-    // default short timeout (seconds)
-    struct timeval tv{};
-    tv.tv_sec  = timeout_;
-    tv.tv_usec = 0;
-    setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-    
-    // Connect the stream message handler to the socket
-    stream_.connect(sock_);
-}
-
-void E7SwitcherClient::close() {
-    if (sock_ != -1) {
-        stream_.disconnect();
-        ::close(sock_);
-        sock_ = -1;
-    }
-}
 
 PhoneLoginRecord E7SwitcherClient::login(const std::string& account, const std::string& password) {
     std::vector<uint8_t> login_packet = build_login_payload(account, password);

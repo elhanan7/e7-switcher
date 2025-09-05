@@ -15,10 +15,6 @@ class E7SwitcherClient {
 public:
     E7SwitcherClient(const std::string& account, const std::string& password);
     ~E7SwitcherClient();
-
-    // Connection management
-    void connect();
-    void close();
     
     // Device operations
     const std::vector<Device>& list_devices();
@@ -29,11 +25,6 @@ public:
     OgeIRDeviceCode get_ac_ir_config(const std::string& device_name);
 
 private:
-    // Connection properties
-    std::string host_;
-    int port_;
-    int timeout_;
-    int sock_;
     std::optional<std::vector<Device>> devices_;
     
     // Authentication properties
