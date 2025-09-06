@@ -33,7 +33,7 @@ void setup() {
   while (!Serial) { /* wait for native USB */ }
   
   // Initialize the logger
-  e7_switcher::Logger::initialize();
+  e7_switcher::Logger::initialize(e7_switcher::LogLevel::INFO);
   auto& logger = e7_switcher::Logger::instance();
   
   // Initialize LED

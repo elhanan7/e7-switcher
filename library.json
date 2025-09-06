@@ -18,7 +18,7 @@
   "homepage": "https://github.com/elhanan7/e7-switcher",
   "dependencies": {
     "bblanchon/ArduinoJson": "^7.0.4",
-    "jkirsons/zlib-PIO": "*"
+    "jkirsons/zlib-PIO": "https://github.com/jkirsons/zlib-PIO"
   },
   "frameworks": ["arduino", "espidf"],
   "platforms": ["espressif32", "native"],
