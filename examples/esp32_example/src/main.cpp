@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include "e7_switcher_client.h"
-#include "logger.h"
-#include "secrets.h"
+#include "e7-switcher/e7_switcher_client.h"
+#include "e7-switcher/logger.h"
+#include "e7-switcher/secrets.h"
 
 // WiFi credentials should be defined in secrets.h
 // #define E7_SWITCHER_WIFI_SSID "your_wifi_ssid"

@@ -1,5 +1,5 @@
-#include "json_helpers.h"
-#include "base64_decode.h"
+#include "e7-switcher/json_helpers.h"
+#include "e7-switcher/base64_decode.h"
 #include <algorithm>
 #include <stdexcept>
 
@@ -9,7 +9,7 @@
 #else
 #define E7_PLATFORM_DESKTOP 1
 #include <nlohmann/json.hpp>
-#include "oge_ir_device_code.h"
+#include "e7-switcher/oge_ir_device_code.h"
 using json = nlohmann::json;
 #endif
 

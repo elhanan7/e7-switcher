@@ -5,11 +5,11 @@
 #include <mbedtls/aes.h>
 #include <esp_sntp.h>
 
-#include "e7_switcher_client.h"
-#include "hebcal_is_rest_day.h"
-#include "secrets.h"
-#include "logger.h"
-#include "compression.h"
+#include "e7-switcher/e7_switcher_client.h"
+#include "e7-switcher/hebcal_is_rest_day.h"
+#include "e7-switcher/secrets.h"
+#include "e7-switcher/logger.h"
+#include "e7-switcher/compression.h"
 #include <data_structures.h>
 
 const char *tz             = "IST-2IDT,M3.4.4/26,M10.5.0";

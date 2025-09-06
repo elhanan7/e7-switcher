@@ -1,5 +1,5 @@
-#include "oge_ir_device_code.h"
-#include "json_helpers.h"
+#include "e7-switcher/oge_ir_device_code.h"
+#include "e7-switcher/json_helpers.h"
 
 #include <stdexcept>
 

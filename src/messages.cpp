@@ -5,12 +5,12 @@
 #define E7_PLATFORM_DESKTOP 1
 // Desktop platform - no Arduino headers needed
 #endif
-#include "messages.h"
-#include "constants.h"
-#include "crc.h"
-#include "crypto.h"
-#include "time_utils.h"
-#include "logger.h"
+#include "e7-switcher/messages.h"
+#include "e7-switcher/constants.h"
+#include "e7-switcher/crc.h"
+#include "e7-switcher/crypto.h"
+#include "e7-switcher/time_utils.h"
+#include "e7-switcher/logger.h"
 #include <vector>
 #include <string>
 #include <cstring>

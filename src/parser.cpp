@@ -5,9 +5,9 @@
 #define E7_PLATFORM_DESKTOP 1
 // Desktop platform - no Arduino headers needed
 #endif
-#include "parser.h"
-#include "logger.h"
-#include "data_structures.h"
+#include "e7-switcher/parser.h"
+#include "e7-switcher/logger.h"
+#include "e7-switcher/data_structures.h"
 #include <stdexcept>
 #include <arpa/inet.h>
 #include <algorithm>
@@ -230,6 +230,7 @@ ACStatus parse_ac_status_from_work_status_bytes(const std::vector<uint8_t>& work
     status.temperature = r.u16() / 10.0;
     // ac_data: [on_or_off_code, mode, temperature, fan_code * 16 + swing_code]
     status.ac_data = r.take(4);
+    status.power_status = static_cast<ACPower>(status.ac_data[0]);
     status.mode = static_cast<ACMode>(status.ac_data[1]);
     status.ac_temperature = status.ac_data[2];
     status.fan_speed = static_cast<ACFanSpeed>(status.ac_data[3] / 16);

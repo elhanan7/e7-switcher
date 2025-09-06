@@ -1,14 +1,11 @@
-# Switcher E7 Library
+# Switcher Library
 
-A cross-platform library for controlling Switcher E7 smart home devices from both ESP32 and desktop platforms (Mac/Linux).
+A cross-platform library for controlling Switcher smart home devices from both ESP32 and desktop platforms (Mac/Linux).
 
 ## Features
 
-- Control Switcher E7 devices (switches, AC units, etc.)
+- Control Switcher devices (switches, AC units, etc.)
 - Cross-platform compatibility (ESP32 and Mac/Linux)
-- Platform-independent logging system
-- JSON parsing for both platforms
-- AES encryption support
 - Easy integration with PlatformIO and CMake projects
 
 ## Installation
@@ -80,12 +77,15 @@ target_link_libraries(your_target PRIVATE e7-switcher::e7-switcher)
 ### Basic Usage
 
 ```cpp
-#include "e7_switcher_client.h"
-#include "logger.h"
+#include "e7-switcher/e7_switcher_client.h"
+#include "e7-switcher/logger.h"
 
-// Initialize the logger
-e7_switcher::Logger::initialize();
+// Initialize the logger (debug messages are disabled by default)
+e7_switcher::Logger::initialize(); // Default log level is INFO
 auto& logger = e7_switcher::Logger::instance();
+
+// To enable debug messages:
+// e7_switcher::Logger::initialize(e7_switcher::LogLevel::DEBUG);
 
 // Create client with your credentials
 e7_switcher::E7SwitcherClient client{"your_account", "your_password"};
@@ -161,4 +161,4 @@ Create a `secrets.h` file with your credentials:
 
 ## License
 
-[Your license information here]
+This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.

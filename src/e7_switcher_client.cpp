@@ -1,12 +1,12 @@
-#include "e7_switcher_client.h"
-#include "constants.h"
-#include "messages.h"
-#include "parser.h"
-#include "crypto.h"
-#include "base64_decode.h"
-#include "logger.h"
-#include "compression.h"
-#include "json_helpers.h"
+#include "e7-switcher/e7_switcher_client.h"
+#include "e7-switcher/constants.h"
+#include "e7-switcher/messages.h"
+#include "e7-switcher/parser.h"
+#include "e7-switcher/crypto.h"
+#include "e7-switcher/base64_decode.h"
+#include "e7-switcher/logger.h"
+#include "e7-switcher/compression.h"
+#include "e7-switcher/json_helpers.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -77,7 +77,7 @@ void E7SwitcherClient::control_switch(const std::string& device_name, const std:
     Logger::instance().infof("Received response from \"%s\"", device_name.c_str());
 }
 
-void E7SwitcherClient::control_ac(const std::string& device_name, const std::string& action, ACMode mode, int temperature, ACFanSpeed fan_speed, ACSwing swing, int operationTime) {
+void E7SwitcherClient::control_ac(const std::string& device_name, const std::string& action, ACMode mode, int temperature, ACFanSpeed fan_speed, ACSwing swing, int operation_time) {
     const Device& device = find_device_by_name_and_type(device_name, DEVICE_TYPE_AC);
 
     std::vector<unsigned char> enc_pwd_bytes = base64_decode(device.visit_pwd);
@@ -95,7 +95,7 @@ void E7SwitcherClient::control_ac(const std::string& device_name, const std::str
         resolver);
     
     ProtocolMessage control_message = build_ac_control_message(
-        session_id_, user_id_, communication_secret_key_, device.did, dec_pwd_bytes, control_str, operationTime);
+        session_id_, user_id_, communication_secret_key_, device.did, dec_pwd_bytes, control_str, operation_time);
 
     Logger::instance().infof("Sending control command to \"%s\"...", device_name.c_str());
     stream_.send_message(control_message);                // send

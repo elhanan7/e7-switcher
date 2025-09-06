@@ -1,4 +1,4 @@
-#include "hebcal_is_rest_day.h"
+#include "e7-switcher/hebcal_is_rest_day.h"
 
 #if defined(ARDUINO) || defined(ESP_PLATFORM) || defined(ESP32) || defined(ESP8266)
 #define E7_PLATFORM_ESP 1

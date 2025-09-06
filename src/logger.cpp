@@ -1,4 +1,4 @@
-#include "logger.h"
+#include "e7-switcher/logger.h"
 #include <cstdarg>
 #include <cstdio>
 #include <memory>
@@ -18,6 +18,8 @@ std::unique_ptr<Logger> Logger::instance_;
 #ifdef E7_PLATFORM_ESP
 // ESP32 implementation using Serial
 class ESPLogger : public Logger {
+private:
+    LogLevel log_level_ = LogLevel::INFO;
 public:
     ESPLogger() {
         Serial.begin(115200);
@@ -27,8 +29,14 @@ public:
     }
 
     void debug(const std::string& message) override {
-        Serial.print("[DEBUG] ");
-        Serial.println(message.c_str());
+        if (log_level_ <= LogLevel::DEBUG) {
+            Serial.print("[DEBUG] ");
+            Serial.println(message.c_str());
+        }
+    }
+    
+    void set_log_level(LogLevel level) override {
+        log_level_ = level;
     }
 
     void info(const std::string& message) override {
@@ -47,13 +55,15 @@ public:
     }
 
     void debugf(const char* format, ...) override {
-        Serial.print("[DEBUG] ");
-        va_list args;
-        va_start(args, format);
-        char buffer[256];
-        vsnprintf(buffer, sizeof(buffer), format, args);
-        Serial.println(buffer);
-        va_end(args);
+        if (log_level_ <= LogLevel::DEBUG) {
+            Serial.print("[DEBUG] ");
+            va_list args;
+            va_start(args, format);
+            char buffer[256];
+            vsnprintf(buffer, sizeof(buffer), format, args);
+            Serial.println(buffer);
+            va_end(args);
+        }
     }
 
     void infof(const char* format, ...) override {
@@ -90,9 +100,17 @@ public:
 #else
 // Linux/Mac implementation using stdout/stderr
 class StdLogger : public Logger {
+private:
+    LogLevel log_level_ = LogLevel::INFO;
 public:
     void debug(const std::string& message) override {
-        std::cout << "[DEBUG] " << message << std::endl;
+        if (log_level_ <= LogLevel::DEBUG) {
+            std::cout << "[DEBUG] " << message << std::endl;
+        }
+    }
+    
+    void set_log_level(LogLevel level) override {
+        log_level_ = level;
     }
 
     void info(const std::string& message) override {
@@ -108,13 +126,15 @@ public:
     }
 
     void debugf(const char* format, ...) override {
-        std::cout << "[DEBUG] ";
-        va_list args;
-        va_start(args, format);
-        char buffer[256];
-        vsnprintf(buffer, sizeof(buffer), format, args);
-        std::cout << buffer << std::endl;
-        va_end(args);
+        if (log_level_ <= LogLevel::DEBUG) {
+            std::cout << "[DEBUG] ";
+            va_list args;
+            va_start(args, format);
+            char buffer[256];
+            vsnprintf(buffer, sizeof(buffer), format, args);
+            std::cout << buffer << std::endl;
+            va_end(args);
+        }
     }
 
     void infof(const char* format, ...) override {
@@ -149,12 +169,13 @@ public:
 };
 #endif
 
-void Logger::initialize() {
+void Logger::initialize(LogLevel level) {
 #ifdef E7_PLATFORM_ESP
     instance_ = std::make_unique<ESPLogger>();
 #else
     instance_ = std::make_unique<StdLogger>();
 #endif
+    instance_->set_log_level(level);
 }
 
 Logger& Logger::instance() {

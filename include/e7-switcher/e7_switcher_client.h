@@ -24,10 +24,11 @@ public:
     // Device operations
     const std::vector<Device>& list_devices();
     void control_switch(const std::string& device_name, const std::string& action);
-    void control_ac(const std::string& device_name, const std::string& action, ACMode mode, int temperature, ACFanSpeed fan_speed, ACSwing swing, int operationTime = 0);
+    void control_ac(const std::string& device_name, const std::string& action,
+                    ACMode mode, int temperature, ACFanSpeed fan_speed,
+                    ACSwing swing, int operation_time = 0);
     SwitchStatus get_switch_status(const std::string& device_name);
     ACStatus get_ac_status(const std::string& device_name);
-    OgeIRDeviceCode get_ac_ir_config(const std::string& device_name);
 
 private:
     std::optional<std::vector<Device>> devices_;
@@ -40,6 +41,7 @@ private:
     // Stream message handler
     MessageStream stream_;
     
+    OgeIRDeviceCode get_ac_ir_config(const std::string& device_name);
     // Cache for IR device codes
     std::unordered_map<std::string, OgeIRDeviceCode> ir_device_code_cache_;
     
@@ -47,7 +49,8 @@ private:
     PhoneLoginRecord login(const std::string& account, const std::string& password);
     
     // Helper method to find and validate a device
-    const Device& find_device_by_name_and_type(const std::string& device_name, const std::string& expected_type);
+    const Device& find_device_by_name_and_type(
+        const std::string& device_name, const std::string& expected_type);
 };
 
 } // namespace e7_switcher

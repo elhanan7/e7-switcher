@@ -1,6 +1,6 @@
-#include "compression.h"
+#include "e7-switcher/compression.h"
 #include <zlib.h>
-#include "logger.h"
+#include "e7-switcher/logger.h"
 #include <stdexcept>
 
 namespace e7_switcher {

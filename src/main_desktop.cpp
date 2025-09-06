@@ -5,9 +5,9 @@
 #include <chrono>
 #include <thread>
 #include <ctime>
-#include "e7_switcher_client.h"
-#include "logger.h"
-#include "secrets.h"
+#include "e7-switcher/e7_switcher_client.h"
+#include "e7-switcher/logger.h"
+#include "e7-switcher/secrets.h"
 
 using namespace e7_switcher;
 

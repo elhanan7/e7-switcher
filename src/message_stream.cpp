@@ -1,6 +1,6 @@
-#include "message_stream.h"
-#include "constants.h"
-#include "parser.h"
+#include "e7-switcher/message_stream.h"
+#include "e7-switcher/constants.h"
+#include "e7-switcher/parser.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>

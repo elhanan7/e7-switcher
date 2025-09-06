@@ -1,4 +1,4 @@
-#include "crc.h"
+#include "e7-switcher/crc.h"
 #include <vector>
 
 namespace e7_switcher {
