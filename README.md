@@ -1,4 +1,4 @@
-# Switcher Library
+# E7 Switcher Library
 
 A cross-platform library for controlling Switcher smart home devices from both ESP32 and desktop platforms (Mac/Linux).
 
