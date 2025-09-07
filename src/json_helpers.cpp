@@ -53,22 +53,6 @@ bool extract_device_list(const std::string& json_str, std::vector<Device>& devic
     return true;
 }
 
-bool extract_is_rest_day(const std::string& json_str, bool& is_rest_day) {
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, json_str);
-    
-    if (error) {
-        return false;
-    }
-    
-    if (!doc["IsRestDay"].is<int>()) {
-        return false;
-    }
-    
-    is_rest_day = doc["IsRestDay"].as<int>() == 1;
-    return true;
-}
-
 #else
 // Linux/Mac implementation using nlohmann/json
 
@@ -98,21 +82,6 @@ bool extract_device_list(const std::string& json_str, std::vector<Device>& devic
             devices.push_back(dev);
         }
         
-        return true;
-    } catch (const std::exception& e) {
-        return false;
-    }
-}
-
-bool extract_is_rest_day(const std::string& json_str, bool& is_rest_day) {
-    try {
-        json j = json::parse(json_str);
-        
-        if (!j.contains("IsRestDay")) {
-            return false;
-        }
-        
-        is_rest_day = j["IsRestDay"].get<int>() == 1;
         return true;
     } catch (const std::exception& e) {
         return false;

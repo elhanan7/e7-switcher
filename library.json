@@ -1,6 +1,6 @@
 {
   "name": "e7-switcher",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "Switcher E7 client library for controlling smart home devices",
   "keywords": "switcher, smart home, iot, esp32",
   "repository": {
@@ -14,7 +14,7 @@
       "maintainer": true
     }
   ],
-  "license": "MIT",
+  "license": "BSD-3-Clause",
   "homepage": "https://github.com/elhanan7/e7-switcher",
   "dependencies": {
     "bblanchon/ArduinoJson": "^7.0.4",
