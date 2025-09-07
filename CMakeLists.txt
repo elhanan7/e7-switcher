@@ -4,9 +4,10 @@ project(e7-switcher VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Option to build as shared library
+# Build options
 option(BUILD_SHARED_LIBS "Build as shared library" OFF)
 option(BUILD_EXAMPLES "Build examples" OFF)
+option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
 
 # Platform detection and configuration
 if(DEFINED ESP_PLATFORM)
@@ -88,4 +89,9 @@ install(FILES
 # Add examples if requested
 if(BUILD_EXAMPLES)
     add_subdirectory(examples/desktop_example)
+endif()
+
+# Add Python bindings if requested
+if(BUILD_PYTHON_BINDINGS)
+    add_subdirectory(python)
 endif()

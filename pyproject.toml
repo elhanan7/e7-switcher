@@ -1,0 +1,56 @@
+[build-system]
+requires = [
+  "scikit-build-core>=0.10",
+  "pybind11>=2.12",
+  "setuptools_scm>=8",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "e7-switcher"
+dynamic = ["version"]
+description = "Python bindings for the e7-switcher C++ client"
+readme = "README.md"          # root README.md
+requires-python = ">=3.8"
+license = { file = "LICENSE" } # root LICENSE
+authors = [{ name = "Elhanan Ilani", email = "elhanan.ilani@gmail.com" }]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: C++",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/elhanan7/e7-switcher"
+
+[tool.setuptools_scm]
+# write the resolved version into the package living under python/
+write_to = "python/e7_switcher/version.py"
+
+[tool.scikit-build]
+cmake.version = ">=3.18"
+cmake.source-dir = ""
+wheel.install-dir = ""                 
+wheel.packages = ["python/e7_switcher"]
+# Use the CMakeLists.txt inside python/
+cmake.args = [
+    "-DBUILD_PYTHON_BINDINGS=ON",
+    "-DBUILD_EXAMPLES=OFF",
+    "-DBUILD_SHARED_LIBS=OFF",
+]
+
+# Ensure sdist contains everything needed to build from source
+sdist.include = [
+  "CMakeLists.txt",
+  "cmake/**",
+  "src/**",
+  "include/**",
+  "README.md",
+  "LICENSE",
+
+  # Python packaging bits
+  "python/CMakeLists.txt",
+  "python/src/**",
+  "python/e7_switcher/**",
+  "python/README.md",
+]

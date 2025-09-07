@@ -7,6 +7,7 @@ A cross-platform library for controlling Switcher smart home devices from both E
 - Control Switcher devices (switches, AC units, etc.)
 - Cross-platform compatibility (ESP32 and Mac/Linux)
 - Easy integration with PlatformIO and CMake projects
+- Python bindings for easy integration with Python projects
 
 ## Installation
 
@@ -58,6 +59,40 @@ find_package(e7-switcher REQUIRED)
 target_link_libraries(your_target PRIVATE e7-switcher::e7-switcher)
 ```
 
+### Using Python Bindings
+
+The library provides Python bindings using pybind11, allowing you to control Switcher devices from Python.
+
+#### Installation
+
+```bash
+# From the repository root
+cd python
+pip install .
+
+# To specify a Python version
+PYTHON_VERSION=3.9 pip install .
+```
+
+Alternatively, you can use the provided build script:
+
+```bash
+# From the repository root
+cd python
+./build_bindings.sh --install
+
+# To specify a Python version
+./build_bindings.sh --python-version 3.9 --install
+```
+
+You can also build the Python bindings using CMake:
+
+```bash
+mkdir build && cd build
+cmake .. -DBUILD_PYTHON_BINDINGS=ON
+make
+```
+
 ## Dependencies
 
 ### For ESP32
@@ -71,6 +106,11 @@ target_link_libraries(your_target PRIVATE e7-switcher::e7-switcher)
 - OpenSSL development libraries
 - nlohmann_json library (v3.11.2 or higher)
 - zlib
+
+### For Python Bindings
+- Python 3.6 or higher
+- pybind11 (automatically fetched during build)
+- pip and setuptools
 
 ## Usage
 
@@ -114,9 +154,45 @@ client.control_ac(
 );
 ```
 
+### Python Usage
+
+```python
+from e7_switcher import E7SwitcherClient, ACMode, ACFanSpeed, ACSwing
+
+# Create client with your credentials
+client = E7SwitcherClient("your_account", "your_password")
+
+# List all devices
+devices = client.list_devices()
+for device in devices:
+    print(f"Device: {device['name']}, Type: {device['type']}")
+
+# Control a switch
+client.control_switch("Your Switch Name", True)  # Turn on
+client.control_switch("Your Switch Name", False)  # Turn off
+
+# Get switch status
+status = client.get_switch_status("Your Switch Name")
+print(f"Switch is {'ON' if status['switch_state'] else 'OFF'}")
+
+# Control an AC unit
+client.control_ac(
+    "Your AC Name",
+    True,                  # Turn on
+    ACMode.COOL,           # Mode
+    22,                    # Temperature
+    ACFanSpeed.FAN_MEDIUM, # Fan speed
+    ACSwing.SWING_ON       # Swing
+)
+
+# Get AC status
+status = client.get_ac_status("Your AC Name")
+print(f"AC is {'ON' if status['power_status'] == 1 else 'OFF'}")
+```
+
 ## Examples
 
-The library includes examples for both ESP32 and desktop platforms:
+The library includes examples for both ESP32 desktop and Python platforms:
 
 ### ESP32 Example
 
@@ -143,20 +219,19 @@ make
 ./e7-switcher-desktop-example off     # Turn device off
 ```
 
-## Configuration
+### Python Example
 
-Create a `secrets.h` file with your credentials:
+A Python example for controlling devices using the Python bindings:
 
-```cpp
-#pragma once
+```bash
+# First install the Python package
+cd python
+pip install .
 
-#define E7_SWITCHER_ACCOUNT "your_account"
-#define E7_SWITCHER_PASSWORD "your_password"
-#define E7_SWITCHER_DEVICE_NAME "your_device_name"
-
-// For ESP32 only
-#define E7_SWITCHER_WIFI_SSID "your_wifi_ssid"
-#define E7_SWITCHER_WIFI_PASSWORD "your_wifi_password"
+# Then run the example
+python examples/example_usage.py --account your_account --password your_password list
+python examples/example_usage.py --account your_account --password your_password switch-status --device "Your Switch Name"
+python examples/example_usage.py --account your_account --password your_password ac-on --device "Your AC Name" --mode cool --temp 22 --fan medium --swing on
 ```
 
 ## License

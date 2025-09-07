@@ -8,6 +8,8 @@
 build/
 cmake-build-*/
 
+_deps/
+
 # Secrets files (templates are tracked)
 secrets.h
 
