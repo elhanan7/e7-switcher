@@ -1,10 +1,7 @@
 #include "e7-switcher/message_stream.h"
 #include "e7-switcher/constants.h"
 #include "e7-switcher/parser.h"
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
+#include "e7-switcher/socket_utils.h"
 #include <stdexcept>
 #include <iostream>
 #include <cstring>
@@ -15,7 +12,7 @@ namespace {
 inline uint16_t le16(const uint8_t* p) { return static_cast<uint16_t>(p[0] | (p[1] << 8)); }
 }
 
-MessageStream::MessageStream() : host_(""), port_(0), timeout_(5), sock_(-1) {}
+MessageStream::MessageStream() : host_(""), port_(0), timeout_(5), recv_timeout_seconds_(5), sock_(net::INVALID_SOCKET_HANDLE) {}
 
 MessageStream::~MessageStream() {
     close();
@@ -25,63 +22,62 @@ void MessageStream::connect_to_server(const std::string& host, int port, int tim
     host_ = host;
     port_ = port;
     timeout_ = timeout_seconds;
-    
-    create_socket();
-    
-    struct sockaddr_in serv_addr{};
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port_);
-    if (inet_pton(AF_INET, host_.c_str(), &serv_addr.sin_addr) <= 0)
-        throw std::runtime_error("Invalid address/ Address not supported");
-
-    if (::connect(sock_, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-        throw std::runtime_error("Connection Failed");
-
-    set_socket_timeout(timeout_);
+    std::string err;
+    if (!net::startup(err)) {
+        throw std::runtime_error("Socket startup failed: " + err);
+    }
+    // Close existing if any and connect
+    if (sock_ != net::INVALID_SOCKET_HANDLE) {
+        net::close(sock_);
+    }
+    if (!net::connect(sock_, host_, port_, timeout_seconds * 1000, err)) {
+        throw std::runtime_error("Connection Failed: " + err);
+    }
+    // Set default recv timeout
+    if (!net::set_recv_timeout(sock_, timeout_seconds, err)) {
+        // Not fatal for connect, but keep state
+        // We still store it so future overrides know our intent
+    }
+    recv_timeout_seconds_ = timeout_seconds;
     
     // Clear the input buffer
     inbuf_.clear();
 }
 
 void MessageStream::close() {
-    if (sock_ != -1) {
-        ::close(sock_);
-        sock_ = -1;
+    if (sock_ != net::INVALID_SOCKET_HANDLE) {
+        net::close(sock_);
         inbuf_.clear();
     }
 }
 
 bool MessageStream::is_connected() const {
-    return sock_ != -1;
+    return sock_ != net::INVALID_SOCKET_HANDLE;
 }
 
 void MessageStream::create_socket() {
-    // Close existing socket if any
-    if (sock_ != -1) {
-        ::close(sock_);
+    // Close existing socket if any, then create a new one via utils
+    if (sock_ != net::INVALID_SOCKET_HANDLE) {
+        net::close(sock_);
     }
-    
-    sock_ = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock_ < 0) throw std::runtime_error("Failed to create socket");
+    std::string err;
+    if (!net::create_tcp_socket(sock_, err)) {
+        throw std::runtime_error("Failed to create socket: " + err);
+    }
 }
 
 void MessageStream::set_socket_timeout(int timeout_seconds) {
-    struct timeval tv{};
-    tv.tv_sec = timeout_seconds;
-    tv.tv_usec = 0;
-    setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+    std::string err;
+    (void)net::set_recv_timeout(sock_, timeout_seconds, err);
+    recv_timeout_seconds_ = timeout_seconds;
 }
 
 
 void MessageStream::send_message(const std::vector<uint8_t>& data) {
-    if (sock_ == -1) throw std::runtime_error("Not connected");
-    const uint8_t* p = data.data();
-    size_t left = data.size();
-    while (left > 0) {
-        ssize_t n = ::send(sock_, p, left, 0);
-        if (n < 0) throw std::runtime_error("Send failed");
-        p += n;
-        left -= static_cast<size_t>(n);
+    if (sock_ == net::INVALID_SOCKET_HANDLE) throw std::runtime_error("Not connected");
+    std::string err;
+    if (!net::send_all(sock_, data, err)) {
+        throw std::runtime_error("Send failed: " + err);
     }
 }
 
@@ -103,22 +99,22 @@ void MessageStream::send_message(const ProtocolMessage& message) {
 }
 
 ProtocolMessage MessageStream::receive_message(int timeout_ms) {
-    if (sock_ == -1) throw std::runtime_error("Not connected");
+    if (sock_ == net::INVALID_SOCKET_HANDLE) throw std::runtime_error("Not connected");
 
-    // Temporarily extend SO_RCVTIMEO for this call; restore after.
-    struct timeval oldtv{}, newtv{};
-    socklen_t optlen = sizeof(oldtv);
-    getsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, &oldtv, &optlen);
-    newtv.tv_sec  = timeout_ms / 1000;
-    newtv.tv_usec = (timeout_ms % 1000) * 1000;
-    setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&newtv, sizeof newtv);
+    // Temporarily override receive timeout using seconds resolution
+    int old_timeout = recv_timeout_seconds_;
+    int tmp_timeout_sec = (timeout_ms + 999) / 1000; // ceil to seconds
+    std::string err;
+    (void)net::set_recv_timeout(sock_, tmp_timeout_sec, err);
+    recv_timeout_seconds_ = tmp_timeout_sec;
 
     std::vector<uint8_t> out;
 
     // Try extracting if already buffered
     if (try_extract_one_packet(out)) {
         // Restore old timeout and return
-        setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&oldtv, sizeof oldtv);
+        (void)net::set_recv_timeout(sock_, old_timeout, err);
+        recv_timeout_seconds_ = old_timeout;
         return parse_protocol_packet(out);
     }
 
@@ -128,19 +124,22 @@ ProtocolMessage MessageStream::receive_message(int timeout_ms) {
     tmp.resize(READ_CHUNK);
 
     while (true) {
-        ssize_t n = ::recv(sock_, tmp.data(), READ_CHUNK, 0);
+        int n = net::recv_some(sock_, tmp.data(), READ_CHUNK, err);
         if (n < 0) {
-            // respect socket's SO_RCVTIMEO (errno == EAGAIN/EWOULDBLOCK typically)
-            setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&oldtv, sizeof oldtv);
+            // -2 => timeout; -1 => error
+            (void)net::set_recv_timeout(sock_, old_timeout, err);
+            recv_timeout_seconds_ = old_timeout;
             throw std::runtime_error("Receive timeout or error");
         } else if (n == 0) {
-            setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&oldtv, sizeof oldtv);
+            (void)net::set_recv_timeout(sock_, old_timeout, err);
+            recv_timeout_seconds_ = old_timeout;
             throw std::runtime_error("Peer closed connection");
         }
         inbuf_.insert(inbuf_.end(), tmp.begin(), tmp.begin() + n);
 
         if (try_extract_one_packet(out)) {
-            setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&oldtv, sizeof oldtv);
+            (void)net::set_recv_timeout(sock_, old_timeout, err);
+            recv_timeout_seconds_ = old_timeout;
             return parse_protocol_packet(out);
         }
         // otherwise, loop to read more bytes

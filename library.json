@@ -1,6 +1,6 @@
 {
   "name": "e7-switcher",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Switcher E7 client library for controlling smart home devices",
   "keywords": "switcher, smart home, iot, esp32",
   "repository": {

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include "parser.h"
+#include "socket_utils.h"
 
 namespace e7_switcher {
 
@@ -34,7 +35,8 @@ private:
     std::string host_;
     int port_;
     int timeout_;
-    int sock_;
+    int recv_timeout_seconds_;
+    net::SocketHandle sock_;
     
     // Incoming stream buffer
     std::vector<uint8_t> inbuf_;

@@ -86,6 +86,10 @@ if(NOT DEFINED ESP_PLATFORM)
         nlohmann_json::nlohmann_json
         ZLIB::ZLIB
     )
+    if(WIN32)
+        # Winsock for socket_utils
+        target_link_libraries(e7-switcher PRIVATE ws2_32)
+    endif()
 endif()
 
 # Installation rules
