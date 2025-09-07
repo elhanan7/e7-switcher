@@ -56,7 +56,7 @@ class E7SwitcherClient:
             RuntimeError: If the device is not found or the command fails
             ValueError: If the device is not a switch
         """
-        action = "on" if turn_on else "off"
+        action = "on" if turn_on and turn_on != "off" else "off"
         self._client.control_switch(device_name, action)
     
     def control_ac(self, 
@@ -83,7 +83,7 @@ class E7SwitcherClient:
             RuntimeError: If the device is not found or the command fails
             ValueError: If the device is not an AC or parameters are invalid
         """
-        action = "on" if turn_on else "off"
+        action = "on" if turn_on and turn_on != "off" else "off"
         self._client.control_ac(device_name, action, mode, temperature, fan_speed, swing, operation_time)
     
     def get_switch_status(self, device_name: str) -> Dict[str, Union[bool, int]]:
