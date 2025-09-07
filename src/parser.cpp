@@ -9,7 +9,6 @@
 #include "e7-switcher/logger.h"
 #include "e7-switcher/data_structures.h"
 #include <stdexcept>
-#include <arpa/inet.h>
 #include <algorithm>
 
 namespace e7_switcher {

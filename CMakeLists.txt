@@ -4,6 +4,12 @@ project(e7-switcher VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Make find_package() honor <PackageName>_ROOT (e.g., ZLIB_ROOT)
+if(POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
+endif()
+
+
 # Build options
 option(BUILD_SHARED_LIBS "Build as shared library" OFF)
 option(BUILD_EXAMPLES "Build examples" OFF)

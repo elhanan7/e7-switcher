@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-14]
+        os: [ubuntu-22.04, macos-14, windows-latest]
 
     env:
       # Build these CPython versions for each OS
@@ -29,6 +29,7 @@ jobs:
       # Architectures per-OS
       CIBW_ARCHS_LINUX: "x86_64 aarch64"
       CIBW_ARCHS_MACOS: arm64
+      CIBW_ARCHS_WINDOWS: AMD64
       # Install system deps inside the manylinux container before building
       CIBW_BEFORE_ALL_LINUX: |
         yum -y update || true
@@ -48,6 +49,14 @@ jobs:
         with:
           python-version: "3.11"
 
+      # Install zlib on Windows by building from source with CMake
+      - name: Install zlib (Windows via CMake)
+        if: startsWith(runner.os, 'Windows')
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          vcpkg install zlib
+    
       # Linux builds run inside manylinux docker images, so host packages are unnecessary
       - name: Prep (Linux)
         if: startsWith(runner.os, 'Linux')
@@ -79,22 +88,26 @@ jobs:
           python -m pip install cibuildwheel==2.20.0
 
       - name: Build wheels with cibuildwheel
-        # Run from repo root where pyproject.toml resides
         env:
           CIBW_BUILD: ${{ env.CIBW_BUILD }}
-          CIBW_ARCHS: ${{ runner.os == 'Linux' && env.CIBW_ARCHS_LINUX || env.CIBW_ARCHS_MACOS }}
-          # Help CMake find system libraries if your CMakeLists uses these hints
+          CIBW_ARCHS: ${{ runner.os == 'Linux' && env.CIBW_ARCHS_LINUX || (runner.os == 'macOS' && env.CIBW_ARCHS_MACOS) || env.CIBW_ARCHS_WINDOWS }}
           OPENSSL_ROOT_DIR: ${{ env.OPENSSL_ROOT_DIR }}
           ZLIB_ROOT: ${{ env.ZLIB_ROOT }}
           CMAKE_PREFIX_PATH: ${{ env.CMAKE_PREFIX_PATH }}
-          # Ensure macOS wheels are tagged for macOS 14 since Homebrew libs target 14.0
           CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=14.0 CMAKE_OSX_DEPLOYMENT_TARGET=14.0"
+          # IMPORTANT: expand the GH env at YAML time (no %...%)
+          CIBW_ENVIRONMENT_WINDOWS: "SKBUILD_CMAKE_DEFINE='ZLIB_LIBRARY=C:/vcpkg/packages/zlib_x64-windows/lib/zlib.lib;ZLIB_INCLUDE_DIR=C:/vcpkg/packages/zlib_x64-windows/include'"
         run: |
           python -m cibuildwheel --output-dir dist
-
-      - name: Show wheels
+      - name: Show wheels (Unix)
+        if: runner.os != 'Windows'
         working-directory: dist
         run: ls -la
+      - name: Show wheels (Windows)
+        if: runner.os == 'Windows'
+        working-directory: dist
+        shell: pwsh
+        run: Get-ChildItem -Force
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
