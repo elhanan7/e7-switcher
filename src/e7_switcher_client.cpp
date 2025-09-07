@@ -27,6 +27,10 @@ PhoneLoginRecord E7SwitcherClient::login(const std::string& account, const std::
     ProtocolMessage login_message = build_login_message(account, password);
     stream_.send_message(login_message);
     ProtocolMessage received_message = stream_.receive_message();
+
+    if (received_message.err_code != 0) {
+        throw std::runtime_error("Login failed with error code: " + std::to_string(received_message.err_code));
+    }
     std::vector<uint8_t> decrypted_payload = decrypt_hex_ecb_pkcs7(received_message.payload, AES_KEY_2_50);
     PhoneLoginRecord login_data = parse_phone_login(decrypted_payload);
 
@@ -42,6 +46,9 @@ const std::vector<Device>& E7SwitcherClient::list_devices() {
         ProtocolMessage message = build_device_list_message(session_id_, user_id_, communication_secret_key_);
         stream_.send_message(message);
         ProtocolMessage received_message = stream_.receive_message();
+        if (received_message.err_code != 0) {
+            throw std::runtime_error("Failed to list devices with error code: " + std::to_string(received_message.err_code));
+        }
         std::string json_str(received_message.payload.begin(), received_message.payload.end());
 
         std::vector<Device> devices;
