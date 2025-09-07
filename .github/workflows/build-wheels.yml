@@ -58,11 +58,12 @@ jobs:
             VERSION="${REF_NAME#v}"
           else
             if DESCRIBE=$(git describe --tags --long --always --dirty 2>/dev/null); then
-              if [[ "$DESCRIBE" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+)-(\d+)-g([0-9a-f]+)(-dirty)?$ ]]; then
+              echo "git describe: $DESCRIBE"
+              if [[ "$DESCRIBE" =~ ^[vV]?([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)-g([0-9a-f]+)(-dirty)?$ ]]; then
                 BASE="${BASH_REMATCH[1]}"; N="${BASH_REMATCH[2]}"; SHA="${BASH_REMATCH[3]}"; DIRTY="${BASH_REMATCH[4]:-}"
                 VERSION="${BASE}.post${N}+g${SHA}"
                 if [[ -n "$DIRTY" ]]; then VERSION+=".dirty"; fi
-              elif [[ "$DESCRIBE" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+              elif [[ "$DESCRIBE" =~ ^[vV]?([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
                 VERSION="${BASH_REMATCH[1]}"
               else
                 SHA=$(git rev-parse --short HEAD)
