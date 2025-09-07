@@ -48,35 +48,6 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Compute version from git (always)
-        shell: bash
-        run: |
-          set -euo pipefail
-          REF_NAME="${GITHUB_REF_NAME:-}"
-          REF="${GITHUB_REF:-}"
-          if [[ -n "$REF" && "$REF" == refs/tags/* && -n "$REF_NAME" ]]; then
-            VERSION="${REF_NAME#v}"
-          else
-            if DESCRIBE=$(git describe --tags --long --always --dirty 2>/dev/null); then
-              echo "git describe: $DESCRIBE"
-              if [[ "$DESCRIBE" =~ ^[vV]?([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)-g([0-9a-f]+)(-dirty)?$ ]]; then
-                BASE="${BASH_REMATCH[1]}"; N="${BASH_REMATCH[2]}"; SHA="${BASH_REMATCH[3]}"; DIRTY="${BASH_REMATCH[4]:-}"
-                VERSION="${BASE}.post${N}+g${SHA}"
-                if [[ -n "$DIRTY" ]]; then VERSION+=".dirty"; fi
-              elif [[ "$DESCRIBE" =~ ^[vV]?([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-                VERSION="${BASH_REMATCH[1]}"
-              else
-                SHA=$(git rev-parse --short HEAD)
-                VERSION="0.0.0+g${SHA}"
-              fi
-            else
-              SHA=$(git rev-parse --short HEAD || echo unknown)
-              VERSION="0.0.0+g${SHA}"
-            fi
-          fi
-          echo "Resolved version: ${VERSION}"
-          echo "SETUPTOOLS_SCM_PRETEND_VERSION=${VERSION}" >> $GITHUB_ENV
-
       # Linux builds run inside manylinux docker images, so host packages are unnecessary
       - name: Prep (Linux)
         if: startsWith(runner.os, 'Linux')
@@ -119,8 +90,7 @@ jobs:
           # Ensure macOS wheels are tagged for macOS 14 since Homebrew libs target 14.0
           CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=14.0 CMAKE_OSX_DEPLOYMENT_TARGET=14.0"
         run: |
-          CIBW_ENVIRONMENT="SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION}" \
-            python -m cibuildwheel --output-dir dist
+          python -m cibuildwheel --output-dir dist
 
       - name: Show wheels
         working-directory: dist
