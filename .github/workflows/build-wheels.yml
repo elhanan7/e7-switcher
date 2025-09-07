@@ -2,7 +2,10 @@ name: Build Wheels
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, fix-ci-wheels ]
+    tags:
+      - 'v*'
+      - 'V*'
   pull_request:
   workflow_dispatch:
 
@@ -16,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2022, macos-14]
+        os: [ubuntu-22.04, macos-14]
 
     env:
       # Build these CPython versions for each OS
@@ -24,8 +27,7 @@ jobs:
       # Skip musllinux and PyPy for now
       CIBW_SKIP: "pp* *-musllinux_*"
       # Architectures per-OS
-      CIBW_ARCHS_LINUX: x86_64
-      CIBW_ARCHS_WINDOWS: AMD64
+      CIBW_ARCHS_LINUX: "x86_64 aarch64"
       CIBW_ARCHS_MACOS: arm64
       # Install system deps inside the manylinux container before building
       CIBW_BEFORE_ALL_LINUX: |
@@ -37,38 +39,67 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      - name: Compute version from git (always)
+        shell: bash
+        run: |
+          set -euo pipefail
+          REF_NAME="${GITHUB_REF_NAME:-}"
+          REF="${GITHUB_REF:-}"
+          if [[ -n "$REF" && "$REF" == refs/tags/* && -n "$REF_NAME" ]]; then
+            VERSION="${REF_NAME#v}"
+          else
+            if DESCRIBE=$(git describe --tags --long --always --dirty 2>/dev/null); then
+              if [[ "$DESCRIBE" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+)-(\d+)-g([0-9a-f]+)(-dirty)?$ ]]; then
+                BASE="${BASH_REMATCH[1]}"; N="${BASH_REMATCH[2]}"; SHA="${BASH_REMATCH[3]}"; DIRTY="${BASH_REMATCH[4]:-}"
+                VERSION="${BASE}.post${N}+g${SHA}"
+                if [[ -n "$DIRTY" ]]; then VERSION+=".dirty"; fi
+              elif [[ "$DESCRIBE" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+                VERSION="${BASH_REMATCH[1]}"
+              else
+                SHA=$(git rev-parse --short HEAD)
+                VERSION="0.0.0+g${SHA}"
+              fi
+            else
+              SHA=$(git rev-parse --short HEAD || echo unknown)
+              VERSION="0.0.0+g${SHA}"
+            fi
+          fi
+          echo "Resolved version: ${VERSION}"
+          echo "SETUPTOOLS_SCM_PRETEND_VERSION=${VERSION}" >> $GITHUB_ENV
+
       # Linux builds run inside manylinux docker images, so host packages are unnecessary
       - name: Prep (Linux)
         if: startsWith(runner.os, 'Linux')
         run: echo "Using manylinux container for dependencies"
 
+      - name: Enable QEMU for cross-arch builds
+        if: startsWith(runner.os, 'Linux')
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Install build tools (macOS)
         if: startsWith(runner.os, 'macOS')
         run: |
           brew update
+          brew uninstall cmake
+          brew install cmake
           brew install cmake ninja openssl@3 zlib nlohmann-json || true
           echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> $GITHUB_ENV
           echo "ZLIB_ROOT=$(brew --prefix zlib)" >> $GITHUB_ENV
           echo "CMAKE_PREFIX_PATH=$(brew --prefix openssl@3):$(brew --prefix zlib)" >> $GITHUB_ENV
-
-      - name: Install build tools (Windows)
-        if: startsWith(runner.os, 'Windows')
-        shell: powershell
-        run: |
-          choco install -y openssl.light
-          choco install -y zlib
-          choco install -y nlohmann-json
-          # Typical install paths for Chocolatey packages
-          $OpenSslRoot = "C:\\Program Files\\OpenSSL-Win64"
-          if (Test-Path $OpenSslRoot) { echo "OPENSSL_ROOT_DIR=$OpenSslRoot" | Out-File -FilePath $env:GITHUB_ENV -Append }
-          # zlib headers and libs may be under Chocolatey lib cache; expose common roots to CMake via CMAKE_PREFIX_PATH
-          echo "CMAKE_PREFIX_PATH=$OpenSslRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+          # Align build outputs with Homebrew bottles built on macos-14
+          echo "MACOSX_DEPLOYMENT_TARGET=14.0" >> $GITHUB_ENV
+          echo "CMAKE_OSX_DEPLOYMENT_TARGET=14.0" >> $GITHUB_ENV
 
       - name: Install cibuildwheel
         run: |
@@ -79,13 +110,16 @@ jobs:
         # Run from repo root where pyproject.toml resides
         env:
           CIBW_BUILD: ${{ env.CIBW_BUILD }}
-          CIBW_ARCHS: ${{ runner.os == 'Linux' && env.CIBW_ARCHS_LINUX || (runner.os == 'Windows' && env.CIBW_ARCHS_WINDOWS || env.CIBW_ARCHS_MACOS) }}
+          CIBW_ARCHS: ${{ runner.os == 'Linux' && env.CIBW_ARCHS_LINUX || env.CIBW_ARCHS_MACOS }}
           # Help CMake find system libraries if your CMakeLists uses these hints
           OPENSSL_ROOT_DIR: ${{ env.OPENSSL_ROOT_DIR }}
           ZLIB_ROOT: ${{ env.ZLIB_ROOT }}
           CMAKE_PREFIX_PATH: ${{ env.CMAKE_PREFIX_PATH }}
+          # Ensure macOS wheels are tagged for macOS 14 since Homebrew libs target 14.0
+          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=14.0 CMAKE_OSX_DEPLOYMENT_TARGET=14.0"
         run: |
-          python -m cibuildwheel --output-dir dist
+          CIBW_ENVIRONMENT="SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION}" \
+            python -m cibuildwheel --output-dir dist
 
       - name: Show wheels
         working-directory: dist

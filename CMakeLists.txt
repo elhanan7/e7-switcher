@@ -17,9 +17,40 @@ else()
     
     # Find required packages for desktop builds
     find_package(OpenSSL REQUIRED)
-    find_package(nlohmann_json 3.11.2 REQUIRED)
-    find_package(ZLIB REQUIRED)
+    # ZLIB: prefer system package, fall back to FetchContent
+    find_package(ZLIB QUIET)
+
+# Try to find nlohmann_json first; fall back to FetchContent if not found
+find_package(nlohmann_json 3.12.0 QUIET)
+if(NOT nlohmann_json_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(nlohmann_json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.12.0
+    )
+    FetchContent_MakeAvailable(nlohmann_json)
 endif()
+
+# If ZLIB was not found, fetch and build it
+if(NOT ZLIB_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(zlib
+        GIT_REPOSITORY https://github.com/madler/zlib.git
+        GIT_TAG v1.2.13
+    )
+    FetchContent_MakeAvailable(zlib)
+    # Provide a consistent imported-like target name for linking
+    if(NOT TARGET ZLIB::ZLIB)
+        if(TARGET zlib)
+            add_library(ZLIB::ZLIB ALIAS zlib)
+        elseif(TARGET zlibstatic)
+            add_library(ZLIB::ZLIB ALIAS zlibstatic)
+        endif()
+    endif()
+endif()
+
+endif()
+
 
 # Include directories
 include_directories(include)
@@ -33,6 +64,11 @@ if(BUILD_SHARED_LIBS)
     add_library(e7-switcher SHARED ${SOURCES})
 else()
     add_library(e7-switcher STATIC ${SOURCES})
+endif()
+
+# Ensure PIC for desktop builds so the static library can link into shared modules (Python extension)
+if(NOT DEFINED ESP_PLATFORM)
+    set_target_properties(e7-switcher PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 # Set include directories for users of the library
@@ -67,6 +103,30 @@ install(EXPORT e7-switcher-targets
     NAMESPACE e7-switcher::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/e7-switcher
 )
+
+# If nlohmann_json was provided via FetchContent (i.e., not an IMPORTED target),
+# add it to our export set so install(EXPORT ...) does not fail.
+# Use the real target name (nlohmann_json), not the namespaced alias.
+if(TARGET nlohmann_json)
+    get_target_property(_NJ_IMPORTED nlohmann_json IMPORTED)
+    if(NOT _NJ_IMPORTED)
+        install(TARGETS nlohmann_json EXPORT e7-switcher-targets)
+    endif()
+endif()
+
+# If zlib was provided via FetchContent (i.e., not an IMPORTED target), export it too
+set(_ZLIB_REAL_TARGET "")
+if(TARGET zlib)
+    set(_ZLIB_REAL_TARGET zlib)
+elseif(TARGET zlibstatic)
+    set(_ZLIB_REAL_TARGET zlibstatic)
+endif()
+if(_ZLIB_REAL_TARGET)
+    get_target_property(_ZLIB_IMPORTED ${_ZLIB_REAL_TARGET} IMPORTED)
+    if(NOT _ZLIB_IMPORTED)
+        install(TARGETS ${_ZLIB_REAL_TARGET} EXPORT e7-switcher-targets)
+    endif()
+endif()
 
 # Create and install config file
 include(CMakePackageConfigHelpers)
