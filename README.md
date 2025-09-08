@@ -1,11 +1,16 @@
 # E7 Switcher Library
 
-A cross-platform library for controlling Switcher smart home devices from both ESP32 and desktop platforms (Mac/Linux).
+A cross-platform library for controlling Switcher smart home devices from ESP32 and desktop platforms (Mac/Linux/Windows), with support for x86_64 and aarch64.
+
+Switcher smart home devices are manufactured by [Switcher](https://switcher.co.il/).
+
+This repo is not affiliated with the Switcher product, it is meant to help give some extra automation capabilities to Switcher devices.
 
 ## Features
 
 - Control Switcher devices (switches, AC units, etc.)
-- Cross-platform compatibility (ESP32 and Mac/Linux)
+- Cross-platform compatibility: ESP32, Mac, Linux, and Windows
+- CPU architectures: x86_64 and aarch64
 - Easy integration with PlatformIO and CMake projects
 - Python bindings for easy integration with Python projects
 
@@ -13,10 +18,17 @@ A cross-platform library for controlling Switcher smart home devices from both E
 
 ### Using PlatformIO
 
-Add the library to your `platformio.ini` file:
+Add the library to your `platformio.ini` file using the PlatformIO registry package name:
 
 ```ini
-lib_deps = 
+lib_deps =
+    elhanan7/e7-switcher
+```
+
+Note: If you need the latest, unreleased changes, you can depend directly on the Git repository instead. Prefer the registry package for stability.
+
+```ini
+lib_deps =
     https://github.com/elhanan7/e7-switcher.git
 ```
 
@@ -65,32 +77,19 @@ The library provides Python bindings using pybind11, allowing you to control Swi
 
 #### Installation
 
-```bash
-# From the repository root
-cd python
-pip install .
+Install from PyPI (recommended):
 
-# To specify a Python version
-PYTHON_VERSION=3.9 pip install .
+```bash
+pip install e7-switcher
 ```
 
-Alternatively, you can use the provided build script:
+Install from source (optional):
 
 ```bash
 # From the repository root
-cd python
-./build_bindings.sh --install
-
-# To specify a Python version
-./build_bindings.sh --python-version 3.9 --install
-```
-
-You can also build the Python bindings using CMake:
-
-```bash
-mkdir build && cd build
-cmake .. -DBUILD_PYTHON_BINDINGS=ON
-make
+pip install build
+python -m build
+pip install dist/e7-switcher-1.0.6-py3-none-any.whl
 ```
 
 ## Dependencies
@@ -224,14 +223,9 @@ make
 A Python example for controlling devices using the Python bindings:
 
 ```bash
-# First install the Python package
-cd python
-pip install .
-
-# Then run the example
-python examples/example_usage.py --account your_account --password your_password list
-python examples/example_usage.py --account your_account --password your_password switch-status --device "Your Switch Name"
-python examples/example_usage.py --account your_account --password your_password ac-on --device "Your AC Name" --mode cool --temp 22 --fan medium --swing on
+python python/examples/example_usage.py --account your_account --password your_password list
+python python/examples/example_usage.py --account your_account --password your_password switch-status --device "Your Switch Name"
+python python/examples/example_usage.py --account your_account --password your_password ac-on --device "Your AC Name" --mode cool --temp 22 --fan medium --swing on
 ```
 
 ## License
