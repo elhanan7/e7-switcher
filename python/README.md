@@ -64,6 +64,35 @@ status = client.get_ac_status("Bedroom AC")
 print(f"AC is {'ON' if status['power_status'] == 1 else 'OFF'}")
 ```
 
+### Fluent AC Control
+
+You can control AC devices using a fluent, chainable interface. The builder initializes from the device's current AC status and lets you compose changes before executing with `do()`.
+
+```python
+from e7_switcher import E7SwitcherClient, ACMode, ACFanSpeed, ACSwing
+
+client = E7SwitcherClient("your_account", "your_password")
+
+# Start from current state, set target state fluently, then execute
+client.control_ac_fluent("Bedroom AC").cool().fan_low().temperature(22).on().do()
+
+# Flexible setters: strings, enums, ints, and booleans
+client.control_ac_fluent("Living Room AC").mode("heat").fan("HIGH").swing_off().timer(30).on().do()
+
+# Using enums explicitly
+client.control_ac_fluent("Office AC").mode(ACMode.DRY).fan(ACFanSpeed.FAN_AUTO).swing(ACSwing.SWING_ON).do()
+```
+
+Available chainable methods include:
+
+- Power: `on()`, `off()`, `power(value)`
+- Mode: `mode(value)`, `auto()`, `dry()`, `fan_mode()`, `cool()`, `heat()`
+- Temperature: `temperature(value)`
+- Fan speed: `fan(value)`, `fan_low()`, `fan_medium()`, `fan_high()`, `fan_auto()`
+- Swing: `swing(value)`, `swing_on()`, `swing_off()`
+- Timer: `operation_time(minutes)`, `timer(minutes)`
+- Execute: `do()`
+
 ### Command-line interface
 
 The package includes a command-line example in the `examples` directory:

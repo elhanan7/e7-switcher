@@ -189,6 +189,41 @@ status = client.get_ac_status("Your AC Name")
 print(f"AC is {'ON' if status['power_status'] == 1 else 'OFF'}")
 ```
 
+#### Fluent AC Control (Python)
+
+You can use a fluent, chainable interface to control AC devices. The fluent builder initializes from the current AC status and lets you set properties in a readable manner before executing with `do()`.
+
+```python
+from e7_switcher import E7SwitcherClient
+
+client = E7SwitcherClient("your_account", "your_password")
+
+# Start from current state, set target state fluently, then execute
+client.control_ac_fluent("Your AC Name").cool().fan_low().temperature(22).on().do()
+
+# Flexible setters: strings, enums, ints, and booleans
+client.control_ac_fluent("Bedroom").mode("heat").fan("HIGH").swing_off().timer(30).on().do()
+
+# Using enums explicitly
+from e7_switcher import ACMode, ACFanSpeed, ACSwing
+client.control_ac_fluent("Office").mode(ACMode.DRY).fan(ACFanSpeed.FAN_AUTO).swing(ACSwing.SWING_ON).do()
+```
+
+Available chainable methods include:
+
+- Power: `on()`, `off()`, `power(value)`
+- Mode: `mode(value)`, `auto()`, `dry()`, `fan_mode()`, `cool()`, `heat()`
+- Temperature: `temperature(value)`
+- Fan speed: `fan(value)`, `fan_low()`, `fan_medium()`, `fan_high()`, `fan_auto()`
+- Swing: `swing(value)`, `swing_on()`, `swing_off()`
+- Timer: `operation_time(minutes)`, `timer(minutes)`
+- Execute: `do()`
+
+Notes:
+
+- The fluent API accepts Python enums (from `e7_switcher.enums`), strings (e.g., `"cool"`, `"FAN_HIGH"`), integers, and booleans where applicable.
+- The Python enums are converted internally to the native `_core` enums for the underlying call, so you can use the Pythonic API without worrying about low-level details.
+
 ## Examples
 
 The library includes examples for both ESP32 desktop and Python platforms:
