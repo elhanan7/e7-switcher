@@ -32,6 +32,35 @@ class E7SwitcherClient:
         """
         self._client = _core.E7SwitcherClient(account, password)
     
+    @staticmethod
+    def _to_core_enum(core_enum_cls, value):
+        """
+        Convert a Python-side enum/int/string to the corresponding _core enum.
+        Accepts:
+          - Already-correct _core enum -> returned as-is
+          - Python IntEnum from python.e7_switcher.enums -> converted by name
+          - Int value -> converted by value
+          - String name -> converted by member name
+        """
+        # If it's already the correct _core enum type
+        if isinstance(value, core_enum_cls):
+            return value
+        
+        # If it looks like an Enum with a name (e.g., our Python IntEnum), try by name
+        name = getattr(value, 'name', None)
+        if isinstance(name, str) and name in core_enum_cls.__members__:
+            return core_enum_cls[name]
+        
+        # Try by value (int) or by string member name directly
+        try:
+            if isinstance(value, str):
+                # Allow passing names like "COOL", "FAN_MEDIUM", etc.
+                if value in core_enum_cls.__members__:
+                    return core_enum_cls[value]
+            return core_enum_cls(value)
+        except Exception as exc:
+            raise ValueError(f"Invalid value '{value}' for enum {core_enum_cls.__name__}") from exc
+    
     def list_devices(self) -> List[Dict[str, Union[str, bool, int]]]:
         """
         Get a list of all available devices.
@@ -85,7 +114,18 @@ class E7SwitcherClient:
             ValueError: If the device is not an AC or parameters are invalid
         """
         action = "on" if turn_on and turn_on != "off" else "off"
-        self._client.control_ac(device_name, action, mode, temperature, fan_speed, swing, operation_time)
+        core_mode = self._to_core_enum(_core.ACMode, mode)
+        core_fan_speed = self._to_core_enum(_core.ACFanSpeed, fan_speed)
+        core_swing = self._to_core_enum(_core.ACSwing, swing)
+        self._client.control_ac(
+            device_name,
+            action,
+            core_mode,
+            temperature,
+            core_fan_speed,
+            core_swing,
+            operation_time,
+        )
     
     def get_switch_status(self, device_name: str) -> Dict[str, Union[bool, int]]:
         """
