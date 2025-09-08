@@ -14,4 +14,5 @@ __all__ = [
     'ACFanSpeed',
     'ACSwing',
     'ACPower',
+    '__version__',
 ]

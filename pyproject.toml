@@ -23,6 +23,9 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/elhanan7/e7-switcher"
 
+[project.scripts]
+e7-switcher = "e7_switcher.cli:main"
+
 [tool.setuptools_scm]
 # write the resolved version into the package living under python/
 write_to = "python/e7_switcher/version.py"
