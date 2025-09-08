@@ -41,6 +41,21 @@ cmake.args = [
     "-DBUILD_EXAMPLES=OFF",
     "-DBUILD_SHARED_LIBS=OFF",
 ]
+## Filter out C/C++ install artifacts from the wheel regardless of what CMake installs
+wheel.exclude = [
+  "include/**",
+  "lib/**",
+  "lib64/**",
+  "share/**",
+  "**/*.a",
+  "**/*.la",
+  "**/*.lib",
+  "**/*.exp",
+  "**/*.pdb",
+  "**/*-config.cmake",
+  "**/*-config-version.cmake",
+  "**/*-targets*.cmake",
+]
 
 # Ensure sdist contains everything needed to build from source
 sdist.include = [
