@@ -135,8 +135,8 @@ for (const auto& device : devices) {
     logger.infof("Device: %s (Type: %s)", device.name.c_str(), device.type.c_str());
 }
 
-// Control a switch
-client.control_switch("Your Switch Name", "on");  // or "off"
+// Control a switch (optional auto-off timer in minutes)
+client.control_switch("Your Switch Name", "on", 0);  // action: "on"/"off", operation_time minutes
 
 // Get switch status
 e7_switcher::SwitchStatus status = client.get_switch_status("Your Switch Name");
@@ -166,9 +166,9 @@ devices = client.list_devices()
 for device in devices:
     print(f"Device: {device['name']}, Type: {device['type']}")
 
-# Control a switch
-client.control_switch("Your Switch Name", True)  # Turn on
-client.control_switch("Your Switch Name", False)  # Turn off
+# Control a switch (optional auto-off timer in minutes)
+client.control_switch("Your Switch Name", True, 0)   # Turn on, no timer
+client.control_switch("Your Switch Name", False, 10)  # Turn off with 10-minute timer
 
 # Get switch status
 status = client.get_switch_status("Your Switch Name")

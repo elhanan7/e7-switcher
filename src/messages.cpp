@@ -238,7 +238,8 @@ ProtocolMessage build_switch_control_message(
     const std::vector<uint8_t>& communication_secret_key,
     int32_t device_id,
     const std::vector<uint8_t>& device_pwd,
-    int on_or_off
+    int on_or_off,
+    int operation_time
 ) {
     auto& logger = e7_switcher::Logger::instance();
     logger.debugf("Building device control packet for device %d", device_id);
@@ -259,7 +260,7 @@ ProtocolMessage build_switch_control_message(
     w.u8(0x00);
     w.u8(0x01); // line_type
     w.u8(on_or_off);
-    w.u32(0); // closing time
+    w.u32(operation_time); // closing time in minutes
     
     auto message = build_protocol_message(
         CMD_DEVICE_CONTROL, // cmd_code
@@ -334,7 +335,7 @@ ProtocolMessage build_ac_ir_config_query_message(int32_t session_id, int32_t use
 ProtocolMessage build_ac_control_message(int32_t session_id, int32_t user_id,
                                               const std::vector<uint8_t> &communication_secret_key, int32_t device_id, 
                                               const std::vector<uint8_t> &device_pwd, const std::string &control_str,
-                                              int operationTime)
+                                              int operation_time)
 {
     size_t buffer_length = control_str.length() + 47;
     std::vector<uint8_t> buf(buffer_length, 0);
@@ -352,7 +353,7 @@ ProtocolMessage build_ac_control_message(int32_t session_id, int32_t user_id,
     w.put(encrypted_pwd);
     w.u8(1);
     w.u16(control_str.length() + 4);
-    w.u32(operationTime);
+    w.u32(operation_time);
     w.put(control_str);
 
     return build_protocol_message(

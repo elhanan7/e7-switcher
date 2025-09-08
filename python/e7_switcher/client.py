@@ -44,20 +44,21 @@ class E7SwitcherClient:
         """
         return self._client.list_devices()
     
-    def control_switch(self, device_name: str, turn_on: bool) -> None:
+    def control_switch(self, device_name: str, turn_on: bool, operation_time: int = 0) -> None:
         """
         Control a switch device.
         
         Args:
             device_name: The name of the switch device
             turn_on: True to turn the switch on, False to turn it off
+            operation_time: Optional auto-off timer in minutes (0 for no timer)
             
         Raises:
             RuntimeError: If the device is not found or the command fails
             ValueError: If the device is not a switch
         """
         action = "on" if turn_on and turn_on != "off" else "off"
-        self._client.control_switch(device_name, action)
+        self._client.control_switch(device_name, action, operation_time)
     
     def control_ac(self, 
                   device_name: str, 

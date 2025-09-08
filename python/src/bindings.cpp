@@ -99,7 +99,7 @@ PYBIND11_MODULE(_core, m) {
             return result;
         })
         .def("control_switch", &E7SwitcherClient::control_switch,
-             py::arg("device_name"), py::arg("action"))
+             py::arg("device_name"), py::arg("action"), py::arg("operation_time") = 0)
         .def("control_ac", &E7SwitcherClient::control_ac,
              py::arg("device_name"), py::arg("action"), py::arg("mode"),
              py::arg("temperature"), py::arg("fan_speed"), py::arg("swing"),

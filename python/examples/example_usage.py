@@ -28,9 +28,11 @@ def main():
     
     switch_on_parser = subparsers.add_parser("switch-on", help="Turn switch on")
     switch_on_parser.add_argument("--device", required=True, help="Device name")
+    switch_on_parser.add_argument("--time", type=int, default=0, help="Auto-off timer in minutes (0 for no timer)")
     
     switch_off_parser = subparsers.add_parser("switch-off", help="Turn switch off")
     switch_off_parser.add_argument("--device", required=True, help="Device name")
+    switch_off_parser.add_argument("--time", type=int, default=0, help="Auto-off timer in minutes (0 for no timer)")
     
     # AC commands
     ac_status_parser = subparsers.add_parser("ac-status", help="Get AC status")
@@ -77,12 +79,12 @@ def main():
         
         elif args.command == "switch-on":
             print(f"Turning ON switch: {args.device}")
-            client.control_switch(args.device, True)
+            client.control_switch(args.device, True, args.time)
             print("Command sent successfully")
         
         elif args.command == "switch-off":
             print(f"Turning OFF switch: {args.device}")
-            client.control_switch(args.device, False)
+            client.control_switch(args.device, False, args.time)
             print("Command sent successfully")
         
         elif args.command == "ac-status":

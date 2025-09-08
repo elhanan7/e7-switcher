@@ -23,7 +23,7 @@ public:
     
     // Device operations
     const std::vector<Device>& list_devices();
-    void control_switch(const std::string& device_name, const std::string& action);
+    void control_switch(const std::string& device_name, const std::string& action, int operation_time = 0);
     void control_ac(const std::string& device_name, const std::string& action,
                     ACMode mode, int temperature, ACFanSpeed fan_speed,
                     ACSwing swing, int operation_time = 0);

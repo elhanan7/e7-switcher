@@ -61,7 +61,7 @@ const std::vector<Device>& E7SwitcherClient::list_devices() {
     return devices_.value();
 }
 
-void E7SwitcherClient::control_switch(const std::string& device_name, const std::string& action) {
+void E7SwitcherClient::control_switch(const std::string& device_name, const std::string& action, int operation_time) {
     Logger::instance().debug("Start of control_device");
     Logger::instance().debug("Got device list");
     const Device& device = find_device_by_name_and_type(device_name, DEVICE_TYPE_SWITCH);
@@ -72,7 +72,7 @@ void E7SwitcherClient::control_switch(const std::string& device_name, const std:
     int on_or_off = (action == "on") ? 1 : 0;
 
     ProtocolMessage control_message = build_switch_control_message(
-        session_id_, user_id_, communication_secret_key_, device.did, dec_pwd_bytes, on_or_off);
+        session_id_, user_id_, communication_secret_key_, device.did, dec_pwd_bytes, on_or_off, operation_time);
 
     Logger::instance().infof("Sending control command to \"%s\"...", device_name.c_str());
     stream_.send_message(control_message);                 // send

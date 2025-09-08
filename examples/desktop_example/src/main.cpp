@@ -69,8 +69,8 @@ int main(int argc, char* argv[]) {
     if (argc < 2) {
         logger.info("Usage:");
         logger.info("  ./switcher-e7 switch-status --device <device_name>                - Get switch status");
-        logger.info("  ./switcher-e7 switch-on --device <device_name>                    - Turn switch on");
-        logger.info("  ./switcher-e7 switch-off --device <device_name>                   - Turn switch off");
+        logger.info("  ./switcher-e7 switch-on --device <device_name> [--time <minutes>] - Turn switch on (optional auto-off timer)");
+        logger.info("  ./switcher-e7 switch-off --device <device_name> [--time <minutes>] - Turn switch off (optional auto-off timer)");
         logger.info("  ./switcher-e7 ac-status --device <device_name>                    - Get AC status");
         logger.info("  ./switcher-e7 ac-on --device <device_name> [--mode <mode>] [--temp <temperature>] [--fan <speed>] [--swing <on|off>]  - Turn AC on");
         logger.info("  ./switcher-e7 ac-off --device <device_name>                       - Turn AC off");
@@ -110,12 +110,32 @@ int main(int argc, char* argv[]) {
         } 
         else if (command == "switch-on") {
             logger.infof("Turning ON switch: %s", device_name.c_str());
-            client.control_switch(device_name, "on");
+            int op_time = 0;
+            if (args.count("time")) {
+                try {
+                    op_time = std::stoi(args["time"]);
+                    if (op_time < 0) op_time = 0;
+                } catch (...) {
+                    logger.warning("Invalid --time value, defaulting to 0");
+                    op_time = 0;
+                }
+            }
+            client.control_switch(device_name, "on", op_time);
             logger.info("Command sent successfully");
         } 
         else if (command == "switch-off") {
             logger.infof("Turning OFF switch: %s", device_name.c_str());
-            client.control_switch(device_name, "off");
+            int op_time = 0;
+            if (args.count("time")) {
+                try {
+                    op_time = std::stoi(args["time"]);
+                    if (op_time < 0) op_time = 0;
+                } catch (...) {
+                    logger.warning("Invalid --time value, defaulting to 0");
+                    op_time = 0;
+                }
+            }
+            client.control_switch(device_name, "off", op_time);
             logger.info("Command sent successfully");
         } 
         else if (command == "ac-status") {

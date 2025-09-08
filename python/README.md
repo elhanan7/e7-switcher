@@ -42,9 +42,8 @@ devices = client.list_devices()
 for device in devices:
     print(f"Device: {device['name']}, Type: {device['type']}")
 
-# Control a switch
-client.control_switch("Living Room Switch", True)  # Turn on
-client.control_switch("Living Room Switch", False)  # Turn off
+# Control a switch (optional auto-off timer in minutes)
+client.control_switch("Living Room Switch", True, 0)   # Turn on, no timer
 
 # Get switch status
 status = client.get_switch_status("Living Room Switch")
@@ -101,7 +100,7 @@ E7SwitcherClient(account: str, password: str)
 #### Methods
 
 - `list_devices() -> List[Dict[str, Union[str, bool, int]]]`: Get a list of all available devices
-- `control_switch(device_name: str, turn_on: bool) -> None`: Control a switch device
+- `control_switch(device_name: str, turn_on: bool, operation_time: int = 0) -> None`: Control a switch device (operation_time in minutes)
 - `control_ac(device_name: str, turn_on: bool, mode: ACMode = ACMode.COOL, temperature: int = 20, fan_speed: ACFanSpeed = ACFanSpeed.FAN_MEDIUM, swing: ACSwing = ACSwing.SWING_ON, operation_time: int = 0) -> None`: Control an air conditioner device
 - `get_switch_status(device_name: str) -> Dict[str, Union[bool, int]]`: Get the status of a switch device
 - `get_ac_status(device_name: str) -> Dict[str, Union[str, int, float, bool]]`: Get the status of an air conditioner device
