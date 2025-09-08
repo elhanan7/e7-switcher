@@ -23,6 +23,9 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/elhanan7/e7-switcher"
 
+[project.scripts]
+e7-switcher = "e7_switcher.cli:main"
+
 [tool.setuptools_scm]
 # write the resolved version into the package living under python/
 write_to = "python/e7_switcher/version.py"
@@ -37,6 +40,21 @@ cmake.args = [
     "-DBUILD_PYTHON_BINDINGS=ON",
     "-DBUILD_EXAMPLES=OFF",
     "-DBUILD_SHARED_LIBS=OFF",
+]
+## Filter out C/C++ install artifacts from the wheel regardless of what CMake installs
+wheel.exclude = [
+  "include/**",
+  "lib/**",
+  "lib64/**",
+  "share/**",
+  "**/*.a",
+  "**/*.la",
+  "**/*.lib",
+  "**/*.exp",
+  "**/*.pdb",
+  "**/*-config.cmake",
+  "**/*-config-version.cmake",
+  "**/*-targets*.cmake",
 ]
 
 # Ensure sdist contains everything needed to build from source
@@ -58,3 +76,7 @@ sdist.include = [
 
 [tool.scikit-build.metadata.version]
 provider = "scikit_build_core.metadata.setuptools_scm"
+
+[tool.cibuildwheel.windows]
+before-build = "pip install delvewheel"
+repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"

@@ -95,20 +95,30 @@ Available chainable methods include:
 
 ### Command-line interface
 
-The package includes a command-line example in the `examples` directory:
+A CLI is installed with the package, exposed as `e7-switcher`.
+Environment variables `E7_ACCOUNT` and `E7_PASSWORD` can be used instead of flags.
 
 ```bash
+# Show help
+e7-switcher --help
+
 # List all devices
-python examples/example_usage.py --account your_account --password your_password list
+e7-switcher --account your_account --password your_password list
 
-# Get switch status
-python examples/example_usage.py --account your_account --password your_password switch-status --device "Living Room Switch"
+# Switch control
+e7-switcher --account your_account --password your_password switch --device "Living Room Switch" on
+e7-switcher --account your_account --password your_password switch --device "Living Room Switch" off
+e7-switcher --account your_account --password your_password switch --device "Living Room Switch" on --timer 30
 
-# Turn on a switch
-python examples/example_usage.py --account your_account --password your_password switch-on --device "Living Room Switch"
+# Switch status
+e7-switcher --account your_account --password your_password switch-status --device "Living Room Switch"
 
-# Turn on an AC with custom settings
-python examples/example_usage.py --account your_account --password your_password ac-on --device "Bedroom AC" --mode cool --temp 22 --fan high --swing on
+# AC control
+e7-switcher --account your_account --password your_password ac --device "Bedroom AC" on --mode cool --temp 22 --fan high --swing on
+e7-switcher --account your_account --password your_password ac --device "Bedroom AC" off
+
+# AC status
+e7-switcher --account your_account --password your_password ac-status --device "Bedroom AC"
 ```
 
 ## API Reference
