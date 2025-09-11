@@ -78,6 +78,7 @@ std::vector<uint8_t> aes_decrypt(const std::vector<uint8_t>& ciphertext, const s
     }
     
     if(1 != EVP_DecryptInit_ex(ctx, key_len_fn(), NULL, (const unsigned char*)key.c_str(), NULL)) throw std::runtime_error("Failed to initialize decryption");
+    EVP_CIPHER_CTX_set_padding(ctx, 0);
 
     if(1 != EVP_DecryptUpdate(ctx, plaintext.data(), &len, ciphertext.data(), ciphertext.size())) throw std::runtime_error("Failed to decrypt update");
     plaintext_len = len;

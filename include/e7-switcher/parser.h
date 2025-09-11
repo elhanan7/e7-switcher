@@ -61,4 +61,6 @@ SwitchStatus parse_switch_status(const std::vector<uint8_t>& payload);
 ACStatus parse_ac_status_from_query_payload(const std::vector<uint8_t>& payload);
 ACStatus parse_ac_status_from_work_status_bytes(const std::vector<uint8_t>& work_status_bytes);
 
+BoilerStatus parse_boiler_status_from_query_payload(const std::vector<uint8_t>& payload);
+
 } // namespace e7_switcher

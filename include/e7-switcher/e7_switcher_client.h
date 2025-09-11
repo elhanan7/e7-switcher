@@ -16,6 +16,7 @@ public:
     // Device type constants
     static constexpr const char* DEVICE_TYPE_AC = "0E01";
     static constexpr const char* DEVICE_TYPE_SWITCH = "0F04";
+    static constexpr const char* DEVICE_TYPE_BOILER = "030B";
     
 public:
     E7SwitcherClient(const std::string& account, const std::string& password);
@@ -27,8 +28,10 @@ public:
     void control_ac(const std::string& device_name, const std::string& action,
                     ACMode mode, int temperature, ACFanSpeed fan_speed,
                     ACSwing swing, int operation_time = 0);
+    void control_boiler(const std::string& device_name, const std::string& action, int operation_time = 0);
     SwitchStatus get_switch_status(const std::string& device_name);
     ACStatus get_ac_status(const std::string& device_name);
+    BoilerStatus get_boiler_status(const std::string& device_name);
 
 private:
     std::optional<std::vector<Device>> devices_;

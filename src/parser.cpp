@@ -20,6 +20,7 @@ public:
     uint8_t u8();
     uint16_t u16();
     uint32_t u32();
+    uint64_t u64();
     std::vector<uint8_t> take(size_t n);
     std::string lp_string_max(size_t max_len, const std::string& encoding = "utf-8");
     std::string ip_reversed();
@@ -46,15 +47,33 @@ uint8_t Reader::u8() {
 
 uint16_t Reader::u16() {
     _need(2);
-    uint16_t val = data_[p_] | (data_[p_ + 1] << 8);
+    uint16_t val = static_cast<uint16_t>(data_[p_]) |
+                   static_cast<uint16_t>(static_cast<uint16_t>(data_[p_ + 1]) << 8);
     p_ += 2;
     return val;
 }
 
 uint32_t Reader::u32() {
     _need(4);
-    int32_t val = data_[p_] | (data_[p_ + 1] << 8) | (data_[p_ + 2] << 16) | (data_[p_ + 3] << 24);
+    uint32_t val = static_cast<uint32_t>(data_[p_]) |
+                   (static_cast<uint32_t>(data_[p_ + 1]) << 8) |
+                   (static_cast<uint32_t>(data_[p_ + 2]) << 16) |
+                   (static_cast<uint32_t>(data_[p_ + 3]) << 24);
     p_ += 4;
+    return val;
+}
+
+uint64_t Reader::u64() {
+    _need(8);
+    uint64_t val = static_cast<uint64_t>(data_[p_]) |
+                   (static_cast<uint64_t>(data_[p_ + 1]) << 8) |
+                   (static_cast<uint64_t>(data_[p_ + 2]) << 16) |
+                   (static_cast<uint64_t>(data_[p_ + 3]) << 24) |
+                   (static_cast<uint64_t>(data_[p_ + 4]) << 32) |
+                   (static_cast<uint64_t>(data_[p_ + 5]) << 40) |
+                   (static_cast<uint64_t>(data_[p_ + 6]) << 48) |
+                   (static_cast<uint64_t>(data_[p_ + 7]) << 56);
+    p_ += 8;
     return val;
 }
 
@@ -250,6 +269,35 @@ ACStatus parse_ac_status_from_work_status_bytes(const std::vector<uint8_t>& work
     status.auto_closing_time = r.u32();
     status.is_delay = r.u8() & 255;
     
+    return status;
+}
+
+
+BoilerStatus parse_boiler_status_from_query_payload(const std::vector<uint8_t>& payload) {
+    auto& logger = e7_switcher::Logger::instance();
+    Reader r(payload);
+    r.take(2); // original cmd
+    r.take(2); // original serial
+    r.take(4); // original timestamp
+    r.take(1); // needs to be 0 or 3
+    r.take(2); // length of rest of payload
+
+    r.take(32); // device name
+
+    BoilerStatus status;
+    status.online_state = r.u8();
+    
+    r.take(2); // length of status bytes
+
+    status.switch_state = (r.u16() == 1);
+    status.power = r.u32() / 220.0;
+    status.electricity = r.u64() / 3600000.0 / 1000.0;
+    status.remaining_time = r.u32();
+    status.open_time = r.u32();
+    status.auto_closing_time = r.u32();
+    status.direction_equipment = r.u8();
+    status.is_delay = r.u8();
+
     return status;
 }
 

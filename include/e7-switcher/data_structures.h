@@ -87,6 +87,20 @@ struct ACStatus {
     std::string to_string() const;
 };
 
+struct BoilerStatus {
+    bool switch_state;
+    float power;
+    float electricity;
+    int remaining_time;
+    int open_time;
+    int auto_closing_time;
+    bool is_delay;
+    int direction_equipment;
+    int online_state;
+
+    std::string to_string() const;
+};
+
 
 
 } // namespace e7_switcher

@@ -27,6 +27,21 @@ std::string ACStatus::to_string() const {
     return result;
 }
 
+std::string BoilerStatus::to_string() const {
+    std::string result;
+    
+    result += "{ switch_state: " + std::to_string(switch_state) + ", ";
+    result += "  power: " + std::to_string(power) + ", ";
+    result += "  electricity: " + std::to_string(electricity) + ", ";
+    result += "  remaining_time: " + std::to_string(remaining_time) + ", ";
+    result += "  open_time: " + std::to_string(open_time) + ", ";
+    result += "  auto_closing_time: " + std::to_string(auto_closing_time) + ", ";
+    result += "  is_delay: " + std::to_string(is_delay) + ", ";
+    result += "  direction_equipment: " + std::to_string(direction_equipment) + ", ";
+    result += "  online_state: " + std::to_string(online_state) + " }";
+    return result;
+}
+
 std::string ac_mode_to_string(ACMode mode) {
     switch (mode) {
         case ACMode::AUTO: return "auto";

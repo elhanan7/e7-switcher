@@ -74,6 +74,9 @@ int main(int argc, char* argv[]) {
         logger.info("  ./switcher-e7 ac-status --device <device_name>                    - Get AC status");
         logger.info("  ./switcher-e7 ac-on --device <device_name> [--mode <mode>] [--temp <temperature>] [--fan <speed>] [--swing <on|off>]  - Turn AC on");
         logger.info("  ./switcher-e7 ac-off --device <device_name>                       - Turn AC off");
+        logger.info("  ./switcher-e7 boiler-status --device <device_name>                - Get boiler status");
+        logger.info("  ./switcher-e7 boiler-on --device <device_name> [--time <minutes>] - Turn boiler on (optional auto-off timer)");
+        logger.info("  ./switcher-e7 boiler-off --device <device_name>                   - Turn boiler off");
         logger.info("");
         logger.info("Options:");
         logger.info("  --device    Device name (required)");
@@ -182,6 +185,21 @@ int main(int argc, char* argv[]) {
         else if (command == "ac-off") {
             logger.infof("Turning OFF AC: %s", device_name.c_str());
             client.control_ac(device_name, "off", ACMode::COOL, 20, ACFanSpeed::FAN_MEDIUM, ACSwing::SWING_ON);
+            logger.info("Command sent successfully");
+        }
+        else if (command == "boiler-status") {
+            logger.infof("Getting boiler status for device: %s", device_name.c_str());
+            BoilerStatus status = client.get_boiler_status(device_name);
+            logger.infof("Boiler status: %s", status.to_string().c_str());
+        }
+        else if (command == "boiler-on") {
+            logger.infof("Turning ON boiler: %s", device_name.c_str());
+            client.control_boiler(device_name, "on");
+            logger.info("Command sent successfully");
+        }
+        else if (command == "boiler-off") {
+            logger.infof("Turning OFF boiler: %s", device_name.c_str());
+            client.control_boiler(device_name, "off");
             logger.info("Command sent successfully");
         }
         else {

@@ -56,6 +56,17 @@ ProtocolMessage build_switch_control_message(
     int operation_time = 0
 );
 
+ProtocolMessage build_boiler_control_message(
+    int32_t session_id,
+    int32_t user_id,
+    const std::vector<uint8_t>& communication_secret_key,
+    int32_t device_id,
+    const std::vector<uint8_t>& device_pwd,
+    int on_or_off,
+    int operation_time = 0
+);
+
+
 ProtocolMessage build_device_query_message(
     int32_t session_id,
     int32_t user_id,

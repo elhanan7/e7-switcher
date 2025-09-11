@@ -84,6 +84,30 @@ void E7SwitcherClient::control_switch(const std::string& device_name, const std:
     Logger::instance().infof("Received response from \"%s\"", device_name.c_str());
 }
 
+void E7SwitcherClient::control_boiler(const std::string& device_name, const std::string& action, int operation_time) {
+    Logger::instance().debug("Start of control_device");
+    Logger::instance().debug("Got device list");
+    const Device& device = find_device_by_name_and_type(device_name, DEVICE_TYPE_BOILER);
+
+    std::vector<unsigned char> enc_pwd_bytes = base64_decode(device.visit_pwd);
+    std::vector<uint8_t> dec_pwd_bytes = aes_decrypt(
+        enc_pwd_bytes, std::string(communication_secret_key_.begin(), communication_secret_key_.end()));
+    int on_or_off = (action == "on") ? 1 : 0;
+
+    ProtocolMessage control_message = build_boiler_control_message(
+        session_id_, user_id_, communication_secret_key_, device.did, dec_pwd_bytes, on_or_off, operation_time);
+
+    Logger::instance().infof("Sending control command to \"%s\"...", device_name.c_str());
+    stream_.send_message(control_message);                 // send
+    (void)stream_.receive_message();  // ignore ack, but drain it
+    Logger::instance().infof("Control command sent to \"%s\"", device_name.c_str());
+
+    // async status response
+    ProtocolMessage response = stream_.receive_message();
+    Logger::instance().infof("Received response from \"%s\"", device_name.c_str());
+}
+
+
 void E7SwitcherClient::control_ac(const std::string& device_name, const std::string& action, ACMode mode, int temperature, ACFanSpeed fan_speed, ACSwing swing, int operation_time) {
     const Device& device = find_device_by_name_and_type(device_name, DEVICE_TYPE_AC);
 
@@ -139,6 +163,19 @@ ACStatus E7SwitcherClient::get_ac_status(const std::string& device_name) {
     ProtocolMessage response = stream_.receive_message();
 
     return parse_ac_status_from_query_payload(response.payload);
+}
+
+BoilerStatus E7SwitcherClient::get_boiler_status(const std::string& device_name) {
+    const Device& device = find_device_by_name_and_type(device_name, DEVICE_TYPE_BOILER);
+
+    ProtocolMessage query_message = build_device_query_message(
+        session_id_, user_id_, communication_secret_key_, device.did);
+
+    stream_.send_message(query_message);
+    (void)stream_.receive_message(); // drain ack
+    ProtocolMessage response = stream_.receive_message();
+
+    return parse_boiler_status_from_query_payload(response.payload);
 }
 
 OgeIRDeviceCode E7SwitcherClient::get_ac_ir_config(const std::string &device_name)

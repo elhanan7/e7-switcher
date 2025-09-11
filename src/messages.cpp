@@ -279,6 +279,55 @@ ProtocolMessage build_switch_control_message(
     return message;
 }
 
+ProtocolMessage build_boiler_control_message(
+    int32_t session_id,
+    int32_t user_id,
+    const std::vector<uint8_t>& communication_secret_key,
+    int32_t device_id,
+    const std::vector<uint8_t>& device_pwd,
+    int on_or_off,
+    int operation_time
+) {
+    auto& logger = e7_switcher::Logger::instance();
+    logger.debugf("Building device control packet for device %d", device_id);
+    std::vector<uint8_t> buf(49, 0);
+    Writer w(buf);
+
+    w.u32(device_id);
+    w.u32(user_id);
+    
+    std::vector<uint8_t> padded_pwd = device_pwd;
+    padded_pwd.resize(32, 0);
+    std::vector<uint8_t> encrypted_pwd = aes_encrypt(padded_pwd, AES_KEY_NATIVE);
+    encrypted_pwd.resize(32);
+    w.put(encrypted_pwd);
+
+    w.u8(0x01);
+    w.u16(0x06);
+    w.u16(on_or_off);
+    w.u32(operation_time); // closing time in minutes
+
+    // encrypt the buffer
+    std::vector<uint8_t> encrypted_buf = aes_encrypt(buf, AES_KEY_2_50);
+    
+    auto message = build_protocol_message(
+        CMD_DEVICE_CONTROL, // cmd_code
+        session_id,         // session
+        1104,               // serial
+        0x0100,             // control_attr
+        1,                  // direction
+        0,                  // errcode
+        user_id,            // user_id
+        encrypted_buf,      // payload
+        communication_secret_key, // communication_secret_key
+        false               // is_version_2
+    );
+    
+    logger.debugf("Built device control packet for device %d", device_id);
+    return message;
+}
+
+
 ProtocolMessage build_device_query_message(
     int32_t session_id,
     int32_t user_id,
