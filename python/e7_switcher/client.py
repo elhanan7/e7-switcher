@@ -5,9 +5,13 @@ A high-level Python wrapper for the E7 Switcher library.
 """
 
 from typing import List, Dict, Union
+import logging
 
 from . import _core
 from .enums import ACMode, ACFanSpeed, ACSwing, ACPower
+
+# Module logger
+_log = logging.getLogger(__name__)
 
 
 class E7SwitcherClient:
@@ -185,20 +189,24 @@ class ACFluentControl:
         # Map current status to Python enums/values (they align with core values)
         try:
             self._power: ACPower = ACPower(int(status.get("power_status", 0)))
-        except Exception:
+        except Exception as exc:
+            _log.warning("Failed to parse 'power_status' from AC status: %r; defaulting to POWER_OFF", status.get("power_status", None))
             self._power = ACPower.POWER_OFF
         try:
             self._mode: ACMode = ACMode(int(status.get("mode", ACMode.COOL)))
-        except Exception:
+        except Exception as exc:
+            _log.warning("Failed to parse 'mode' from AC status: %r; defaulting to COOL", status.get("mode", None))
             self._mode = ACMode.COOL
         self._temperature: int = int(status.get("ac_temperature", status.get("temperature", 20)))
         try:
             self._fan_speed: ACFanSpeed = ACFanSpeed(int(status.get("fan_speed", ACFanSpeed.FAN_MEDIUM)))
-        except Exception:
+        except Exception as exc:
+            _log.warning("Failed to parse 'fan_speed' from AC status: %r; defaulting to FAN_MEDIUM", status.get("fan_speed", None))
             self._fan_speed = ACFanSpeed.FAN_MEDIUM
         try:
             self._swing: ACSwing = ACSwing(int(status.get("swing", ACSwing.SWING_ON)))
-        except Exception:
+        except Exception as exc:
+            _log.warning("Failed to parse 'swing' from AC status: %r; defaulting to SWING_ON", status.get("swing", None))
             self._swing = ACSwing.SWING_ON
         self._operation_time: int = 0
     

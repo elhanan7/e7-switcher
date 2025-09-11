@@ -1,5 +1,6 @@
 #include "e7-switcher/oge_ir_device_code.h"
 #include "e7-switcher/json_helpers.h"
+#include "e7-switcher/logger.h"
 
 #include <stdexcept>
 
@@ -51,7 +52,13 @@ const IRKey* OgeIRDeviceCode::ir_code() const {
 
         for (const auto& k : ir_key_list) if (k.key.find(*m) != std::string::npos) return &k;
         return nullptr;
-    } catch (...) { return nullptr; }
+    } catch (const std::exception& e) {
+        Logger::instance().warningf("Exception in OgeIRDeviceCode::ir_code: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        Logger::instance().warning("Unknown exception in OgeIRDeviceCode::ir_code");
+        return nullptr;
+    }
 }
 
 const IRKey* OgeIRDeviceCode::ir_code_with_on_prefix() {
@@ -70,7 +77,13 @@ const IRKey* OgeIRDeviceCode::ir_code_with_on_prefix() {
             if (auto* b = code_by_key(k)) return b;
         }
         return nullptr;
-    } catch (...) { return nullptr; }
+    } catch (const std::exception& e) {
+        Logger::instance().warningf("Exception in OgeIRDeviceCode::ir_code_with_on_prefix: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        Logger::instance().warning("Unknown exception in OgeIRDeviceCode::ir_code_with_on_prefix");
+        return nullptr;
+    }
 }
 
 const IRKey* OgeIRDeviceCode::swing_ir_code() {
@@ -103,14 +116,26 @@ const IRKey* OgeIRDeviceCode::swing_ir_code() {
         }) if (!k.empty()) if (auto* b = code_by_key(k)) return b;
 
         return ir_code();
-    } catch (...) { return nullptr; }
+    } catch (const std::exception& e) {
+        Logger::instance().warningf("Exception in OgeIRDeviceCode::swing_ir_code: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        Logger::instance().warning("Unknown exception in OgeIRDeviceCode::swing_ir_code");
+        return nullptr;
+    }
 }
 
 const IRKey* OgeIRDeviceCode::swing_special_ir_code() const {
     try {
         if (swing < 0 || swing >= (int)swing_key1.size()) return nullptr;
         return code_by_key(swing_key1[swing]);
-    } catch (...) { return nullptr; }
+    } catch (const std::exception& e) {
+        Logger::instance().warningf("Exception in OgeIRDeviceCode::swing_special_ir_code: %s", e.what());
+        return nullptr;
+    } catch (...) {
+        Logger::instance().warning("Unknown exception in OgeIRDeviceCode::swing_special_ir_code");
+        return nullptr;
+    }
 }
 
 const IRKey* OgeIRDeviceCode::switch_ir_code() {
