@@ -5,7 +5,7 @@
 
 namespace e7_switcher {
 
-std::vector<uint8_t> decrypt_hex_ecb_pkcs7(const std::vector<uint8_t>& ciphertext, const std::string& key) {
+std::vector<uint8_t> aes_decrypt(const std::vector<uint8_t>& ciphertext, const std::string& key) {
     mbedtls_aes_context aes;
     std::vector<uint8_t> plaintext(ciphertext.size());
 
@@ -27,7 +27,7 @@ std::vector<uint8_t> decrypt_hex_ecb_pkcs7(const std::vector<uint8_t>& ciphertex
     return plaintext;
 }
 
-std::vector<uint8_t> encrypt_to_hex_ecb_pkcs7(const std::vector<uint8_t>& plaintext, const std::string& key) {
+std::vector<uint8_t> aes_encrypt(const std::vector<uint8_t>& plaintext, const std::string& key) {
     mbedtls_aes_context aes;
     std::vector<uint8_t> ciphertext;
     
@@ -61,7 +61,7 @@ std::vector<uint8_t> encrypt_to_hex_ecb_pkcs7(const std::vector<uint8_t>& plaint
 
 namespace e7_switcher {
 
-std::vector<uint8_t> decrypt_hex_ecb_pkcs7(const std::vector<uint8_t>& ciphertext, const std::string& key) {
+std::vector<uint8_t> aes_decrypt(const std::vector<uint8_t>& ciphertext, const std::string& key) {
     EVP_CIPHER_CTX *ctx;
     int len;
     int plaintext_len;
@@ -79,8 +79,6 @@ std::vector<uint8_t> decrypt_hex_ecb_pkcs7(const std::vector<uint8_t>& ciphertex
     
     if(1 != EVP_DecryptInit_ex(ctx, key_len_fn(), NULL, (const unsigned char*)key.c_str(), NULL)) throw std::runtime_error("Failed to initialize decryption");
 
-    EVP_CIPHER_CTX_set_padding(ctx, 0);
-
     if(1 != EVP_DecryptUpdate(ctx, plaintext.data(), &len, ciphertext.data(), ciphertext.size())) throw std::runtime_error("Failed to decrypt update");
     plaintext_len = len;
 
@@ -93,7 +91,7 @@ std::vector<uint8_t> decrypt_hex_ecb_pkcs7(const std::vector<uint8_t>& ciphertex
     return plaintext;
 }
 
-std::vector<uint8_t> encrypt_to_hex_ecb_pkcs7(const std::vector<uint8_t>& plaintext, const std::string& key) {
+std::vector<uint8_t> aes_encrypt(const std::vector<uint8_t>& plaintext, const std::string& key) {
     EVP_CIPHER_CTX *ctx;
     int len;
     int ciphertext_len;

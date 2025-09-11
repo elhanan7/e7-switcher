@@ -31,7 +31,7 @@ PhoneLoginRecord E7SwitcherClient::login(const std::string& account, const std::
     if (received_message.err_code != 0) {
         throw std::runtime_error("Login failed with error code: " + std::to_string(received_message.err_code));
     }
-    std::vector<uint8_t> decrypted_payload = decrypt_hex_ecb_pkcs7(received_message.payload, AES_KEY_2_50);
+    std::vector<uint8_t> decrypted_payload = aes_decrypt(received_message.payload, AES_KEY_2_50);
     PhoneLoginRecord login_data = parse_phone_login(decrypted_payload);
 
     session_id_ = login_data.session_id;
@@ -67,7 +67,7 @@ void E7SwitcherClient::control_switch(const std::string& device_name, const std:
     const Device& device = find_device_by_name_and_type(device_name, DEVICE_TYPE_SWITCH);
 
     std::vector<unsigned char> enc_pwd_bytes = base64_decode(device.visit_pwd);
-    std::vector<uint8_t> dec_pwd_bytes = decrypt_hex_ecb_pkcs7(
+    std::vector<uint8_t> dec_pwd_bytes = aes_decrypt(
         enc_pwd_bytes, std::string(communication_secret_key_.begin(), communication_secret_key_.end()));
     int on_or_off = (action == "on") ? 1 : 0;
 
@@ -88,7 +88,7 @@ void E7SwitcherClient::control_ac(const std::string& device_name, const std::str
     const Device& device = find_device_by_name_and_type(device_name, DEVICE_TYPE_AC);
 
     std::vector<unsigned char> enc_pwd_bytes = base64_decode(device.visit_pwd);
-    std::vector<uint8_t> dec_pwd_bytes = decrypt_hex_ecb_pkcs7(
+    std::vector<uint8_t> dec_pwd_bytes = aes_decrypt(
         enc_pwd_bytes, std::string(communication_secret_key_.begin(), communication_secret_key_.end()));
 
     const OgeIRDeviceCode& resolver = get_ac_ir_config(device_name);

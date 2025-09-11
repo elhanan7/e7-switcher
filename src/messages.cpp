@@ -196,7 +196,7 @@ ProtocolMessage build_login_message(
     w.put_constant(0, 32);
     w.put_constant(0x0A, 10);
 
-    std::vector<uint8_t> encrypted = encrypt_to_hex_ecb_pkcs7(buf, AES_KEY_2_50);
+    std::vector<uint8_t> encrypted = aes_encrypt(buf, AES_KEY_2_50);
 
     // Use the new build_protocol_message function
     return build_protocol_message(
@@ -251,7 +251,7 @@ ProtocolMessage build_switch_control_message(
     
     std::vector<uint8_t> padded_pwd = device_pwd;
     padded_pwd.resize(32, 0);
-    std::vector<uint8_t> encrypted_pwd = encrypt_to_hex_ecb_pkcs7(padded_pwd, AES_KEY_NATIVE);
+    std::vector<uint8_t> encrypted_pwd = aes_encrypt(padded_pwd, AES_KEY_NATIVE);
     encrypted_pwd.resize(32);
     w.put(encrypted_pwd);
 
@@ -348,7 +348,7 @@ ProtocolMessage build_ac_control_message(int32_t session_id, int32_t user_id,
     padded_pwd.resize(32, 0);
     auto& logger = e7_switcher::Logger::instance();
     
-    std::vector<uint8_t> encrypted_pwd = encrypt_to_hex_ecb_pkcs7(padded_pwd, AES_KEY_NATIVE);
+    std::vector<uint8_t> encrypted_pwd = aes_encrypt(padded_pwd, AES_KEY_NATIVE);
     encrypted_pwd.resize(32);
     w.put(encrypted_pwd);
     w.u8(1);
