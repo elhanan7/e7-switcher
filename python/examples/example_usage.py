@@ -28,11 +28,11 @@ def main():
     
     switch_on_parser = subparsers.add_parser("switch-on", help="Turn switch on")
     switch_on_parser.add_argument("--device", required=True, help="Device name")
-    switch_on_parser.add_argument("--time", type=int, default=0, help="Auto-off timer in minutes (0 for no timer)")
+    switch_on_parser.add_argument("--time", type=int, default=0, help="Auto-off timer in seconds (0 for no timer)")
     
     switch_off_parser = subparsers.add_parser("switch-off", help="Turn switch off")
     switch_off_parser.add_argument("--device", required=True, help="Device name")
-    switch_off_parser.add_argument("--time", type=int, default=0, help="Auto-off timer in minutes (0 for no timer)")
+    switch_off_parser.add_argument("--time", type=int, default=0, help="Auto-off timer in seconds (0 for no timer)")
     
     # AC commands
     ac_status_parser = subparsers.add_parser("ac-status", help="Get AC status")
@@ -51,6 +51,18 @@ def main():
     
     ac_off_parser = subparsers.add_parser("ac-off", help="Turn AC off")
     ac_off_parser.add_argument("--device", required=True, help="Device name")
+
+    # Boiler commands
+    boiler_status_parser = subparsers.add_parser("boiler-status", help="Get boiler status")
+    boiler_status_parser.add_argument("--device", required=True, help="Device name")
+
+    boiler_on_parser = subparsers.add_parser("boiler-on", help="Turn boiler on")
+    boiler_on_parser.add_argument("--device", required=True, help="Device name")
+    boiler_on_parser.add_argument("--time", type=int, default=0, help="Auto-off timer in seconds (0 for no timer)")
+
+    boiler_off_parser = subparsers.add_parser("boiler-off", help="Turn boiler off")
+    boiler_off_parser.add_argument("--device", required=True, help="Device name")
+    boiler_off_parser.add_argument("--time", type=int, default=0, help="Auto-off timer in seconds (0 for no timer)")
     
     args = parser.parse_args()
     
@@ -75,7 +87,7 @@ def main():
             state = "ON" if status["switch_state"] else "OFF"
             print(f"Switch {args.device} is {state}")
             print(f"  WiFi Power: {status['wifi_power']}")
-            print(f"  Remaining Time: {status['remaining_time']} minutes")
+            print(f"  Remaining Time: {status['remaining_time']} seconds")
         
         elif args.command == "switch-on":
             print(f"Turning ON switch: {args.device}")
@@ -135,6 +147,24 @@ def main():
         elif args.command == "ac-off":
             print(f"Turning OFF AC: {args.device}")
             client.control_ac(args.device, False, ACMode.COOL, 20, ACFanSpeed.FAN_MEDIUM, ACSwing.SWING_ON)
+            print("Command sent successfully")
+
+        elif args.command == "boiler-status":
+            status = client.get_boiler_status(args.device)
+            state = "ON" if status["switch_state"] else "OFF"
+            print(f"Boiler {args.device} is {state}")
+            print(f"  Power: {status['power']} W")
+            print(f"  Energy: {status['electricity']} kWh")
+            print(f"  Remaining Time: {status['remaining_time']} minutes")
+
+        elif args.command == "boiler-on":
+            print(f"Turning ON boiler: {args.device}")
+            client.control_boiler(args.device, True, args.time)
+            print("Command sent successfully")
+
+        elif args.command == "boiler-off":
+            print(f"Turning OFF boiler: {args.device}")
+            client.control_boiler(args.device, False, args.time)
             print("Command sent successfully")
     
     except Exception as e:

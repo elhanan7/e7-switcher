@@ -90,7 +90,7 @@ class E7SwitcherClient:
         Args:
             device_name: The name of the switch device
             turn_on: True to turn the switch on, False to turn it off
-            operation_time: Optional auto-off timer in minutes (0 for no timer)
+            operation_time: Optional auto-off timer in seconds (0 for no timer)
             
         Raises:
             RuntimeError: If the device is not found or the command fails
@@ -117,7 +117,7 @@ class E7SwitcherClient:
             temperature: The target temperature (16-30)
             fan_speed: The fan speed setting
             swing: The swing setting
-            operation_time: Optional timer in minutes (0 for no timer)
+            operation_time: Optional timer in seconds (0 for no timer)
             
         Raises:
             RuntimeError: If the device is not found or the command fails
@@ -136,6 +136,18 @@ class E7SwitcherClient:
             core_swing,
             operation_time,
         )
+    
+    def control_boiler(self, device_name: str, turn_on: bool, operation_time: int = 0) -> None:
+        """
+        Control a boiler device.
+        
+        Args:
+            device_name: The name of the boiler device
+            turn_on: True to turn the boiler on, False to turn it off
+            operation_time: Optional auto-off timer in seconds (0 for no timer)
+        """
+        action = "on" if turn_on and turn_on != "off" else "off"
+        self._client.control_boiler(device_name, action, operation_time)
     
     def get_switch_status(self, device_name: str) -> Dict[str, Union[bool, int]]:
         """
@@ -168,6 +180,18 @@ class E7SwitcherClient:
             ValueError: If the device is not an AC
         """
         return self._client.get_ac_status(device_name)
+    
+    def get_boiler_status(self, device_name: str) -> Dict[str, Union[bool, int, float]]:
+        """
+        Get the status of a boiler device.
+        
+        Args:
+            device_name: The name of the boiler device
+        
+        Returns:
+            A dictionary containing the boiler status information
+        """
+        return self._client.get_boiler_status(device_name)
     
     def control_ac_fluent(self, device_name: str) -> "ACFluentControl":
         """Start a fluent AC control sequence for the given device."""
@@ -332,12 +356,12 @@ class ACFluentControl:
         return self
     
     # Operation time / timer
-    def operation_time(self, minutes: int):
-        self._operation_time = int(minutes)
+    def operation_time(self, seconds: int):
+        self._operation_time = int(seconds)
         return self
     
-    def timer(self, minutes: int):
-        return self.operation_time(minutes)
+    def timer(self, seconds: int):
+        return self.operation_time(seconds)
     
     # Execute
     def do(self):

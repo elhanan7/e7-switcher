@@ -69,13 +69,13 @@ int main(int argc, char* argv[]) {
     if (argc < 2) {
         logger.info("Usage:");
         logger.info("  ./switcher-e7 switch-status --device <device_name>                - Get switch status");
-        logger.info("  ./switcher-e7 switch-on --device <device_name> [--time <minutes>] - Turn switch on (optional auto-off timer)");
-        logger.info("  ./switcher-e7 switch-off --device <device_name> [--time <minutes>] - Turn switch off (optional auto-off timer)");
+        logger.info("  ./switcher-e7 switch-on --device <device_name> [--time <seconds>] - Turn switch on (optional auto-off timer in seconds)");
+        logger.info("  ./switcher-e7 switch-off --device <device_name> [--time <seconds>] - Turn switch off (optional auto-off timer in seconds)");
         logger.info("  ./switcher-e7 ac-status --device <device_name>                    - Get AC status");
         logger.info("  ./switcher-e7 ac-on --device <device_name> [--mode <mode>] [--temp <temperature>] [--fan <speed>] [--swing <on|off>]  - Turn AC on");
         logger.info("  ./switcher-e7 ac-off --device <device_name>                       - Turn AC off");
         logger.info("  ./switcher-e7 boiler-status --device <device_name>                - Get boiler status");
-        logger.info("  ./switcher-e7 boiler-on --device <device_name> [--time <minutes>] - Turn boiler on (optional auto-off timer)");
+        logger.info("  ./switcher-e7 boiler-on --device <device_name> [--time <seconds>] - Turn boiler on (optional auto-off timer in seconds)");
         logger.info("  ./switcher-e7 boiler-off --device <device_name>                   - Turn boiler off");
         logger.info("");
         logger.info("Options:");
@@ -84,6 +84,7 @@ int main(int argc, char* argv[]) {
         logger.info("  --temp      Temperature: 16-30 (default: 20)");
         logger.info("  --fan       Fan speed: low, medium, high, auto (default: medium)");
         logger.info("  --swing     Swing: on, off (default: on)");
+        logger.info("  --time      Auto-off timer in seconds (default: 0)");
         return 1;
     }
     
@@ -194,7 +195,17 @@ int main(int argc, char* argv[]) {
         }
         else if (command == "boiler-on") {
             logger.infof("Turning ON boiler: %s", device_name.c_str());
-            client.control_boiler(device_name, "on");
+            int op_time = 0;
+            if (args.count("time")) {
+                try {
+                    op_time = std::stoi(args["time"]);
+                    if (op_time < 0) op_time = 0;
+                } catch (...) {
+                    logger.warning("Invalid --time value, defaulting to 0");
+                    op_time = 0;
+                }
+            }
+            client.control_boiler(device_name, "on", op_time);
             logger.info("Command sent successfully");
         }
         else if (command == "boiler-off") {
@@ -203,7 +214,7 @@ int main(int argc, char* argv[]) {
             logger.info("Command sent successfully");
         }
         else {
-            logger.warning("Unknown command. Use 'switch-status', 'switch-on', 'switch-off', 'ac-status', 'ac-on', or 'ac-off'");
+            logger.warning("Unknown command. Use 'switch-status', 'switch-on', 'switch-off', 'ac-status', 'ac-on', 'ac-off', 'boiler-status', 'boiler-on', or 'boiler-off'");
             return 1;
         }
     } 

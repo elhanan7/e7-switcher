@@ -260,7 +260,7 @@ ProtocolMessage build_switch_control_message(
     w.u8(0x00);
     w.u8(0x01); // line_type
     w.u8(on_or_off);
-    w.u32(operation_time); // closing time in minutes
+    w.u32(operation_time); // closing time in seconds
     
     auto message = build_protocol_message(
         CMD_DEVICE_CONTROL, // cmd_code
@@ -305,7 +305,7 @@ ProtocolMessage build_boiler_control_message(
     w.u8(0x01);
     w.u16(0x06);
     w.u16(on_or_off);
-    w.u32(operation_time); // closing time in minutes
+    w.u32(operation_time); // closing time in seconds
 
     // encrypt the buffer
     std::vector<uint8_t> encrypted_buf = aes_encrypt(buf, AES_KEY_2_50);

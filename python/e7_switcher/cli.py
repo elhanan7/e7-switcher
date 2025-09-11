@@ -63,6 +63,26 @@ def cmd_switch_status(args: argparse.Namespace) -> int:
     _print(status, args.output)
     return 0
 
+
+def cmd_boiler(args: argparse.Namespace) -> int:
+    client = _make_client(args)
+    action = args.action.lower()
+    turn_on = action == "on"
+    client.control_boiler(args.device, turn_on, args.timer or 0)
+    if args.wait_status:
+        status = client.get_boiler_status(args.device)
+        _print(status, args.output)
+    else:
+        _print({"device": args.device, "action": action, "timer": args.timer or 0}, args.output)
+    return 0
+
+
+def cmd_boiler_status(args: argparse.Namespace) -> int:
+    client = _make_client(args)
+    status = client.get_boiler_status(args.device)
+    _print(status, args.output)
+    return 0
+
 def cmd_ac(args: argparse.Namespace) -> int:
     client = _make_client(args)
     builder = client.control_ac_fluent(args.device)
@@ -134,7 +154,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_sw = sub.add_parser("switch", help="Control a switch")
     p_sw.add_argument("--device", required=True, help="Switch device name")
     p_sw.add_argument("action", choices=["on", "off"], help="Action to perform")
-    p_sw.add_argument("--timer", type=int, default=0, help="Auto-off timer in minutes (0 for none)")
+    p_sw.add_argument("--timer", type=int, default=0, help="Auto-off timer in seconds (0 for none)")
     p_sw.add_argument("--wait-status", action="store_true", help="After command, fetch and print status")
     p_sw.set_defaults(func=cmd_switch)
 
@@ -151,7 +171,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_ac.add_argument("--temp", type=int, help="Target temperature (omit to keep current)")
     p_ac.add_argument("--fan", help="Fan speed: low|medium|high|auto (omit to keep current)")
     p_ac.add_argument("--swing", help="Swing: on|off (omit to keep current)")
-    p_ac.add_argument("--timer", type=int, help="Timer in minutes (omit for none)")
+    p_ac.add_argument("--timer", type=int, help="Timer in seconds (omit for none)")
     p_ac.add_argument("--wait-status", action="store_true", help="After command, fetch and print status")
     p_ac.set_defaults(func=cmd_ac)
 
@@ -159,6 +179,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_acst = sub.add_parser("ac-status", help="Get AC status")
     p_acst.add_argument("--device", required=True, help="AC device name")
     p_acst.set_defaults(func=cmd_ac_status)
+
+    # boiler on/off with optional timer
+    p_bo = sub.add_parser("boiler", help="Control a boiler")
+    p_bo.add_argument("--device", required=True, help="Boiler device name")
+    p_bo.add_argument("action", choices=["on", "off"], help="Action to perform")
+    p_bo.add_argument("--timer", type=int, default=0, help="Auto-off timer in seconds (0 for none)")
+    p_bo.add_argument("--wait-status", action="store_true", help="After command, fetch and print status")
+    p_bo.set_defaults(func=cmd_boiler)
+
+    # boiler status
+    p_bost = sub.add_parser("boiler-status", help="Get boiler status")
+    p_bost.add_argument("--device", required=True, help="Boiler device name")
+    p_bost.set_defaults(func=cmd_boiler_status)
 
     return p
 

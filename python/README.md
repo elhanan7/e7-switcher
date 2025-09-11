@@ -42,7 +42,7 @@ devices = client.list_devices()
 for device in devices:
     print(f"Device: {device['name']}, Type: {device['type']}")
 
-# Control a switch (optional auto-off timer in minutes)
+# Control a switch (optional auto-off timer in seconds)
 client.control_switch("Living Room Switch", True, 0)   # Turn on, no timer
 
 # Get switch status
@@ -90,7 +90,7 @@ Available chainable methods include:
 - Temperature: `temperature(value)`
 - Fan speed: `fan(value)`, `fan_low()`, `fan_medium()`, `fan_high()`, `fan_auto()`
 - Swing: `swing(value)`, `swing_on()`, `swing_off()`
-- Timer: `operation_time(minutes)`, `timer(minutes)`
+- Timer: `operation_time(seconds)`, `timer(seconds)`
 - Execute: `do()`
 
 ### Command-line interface
@@ -105,7 +105,7 @@ e7-switcher --help
 # List all devices
 e7-switcher --account your_account --password your_password list
 
-# Switch control
+# Switch control (timer is in seconds)
 e7-switcher --account your_account --password your_password switch --device "Living Room Switch" on
 e7-switcher --account your_account --password your_password switch --device "Living Room Switch" off
 e7-switcher --account your_account --password your_password switch --device "Living Room Switch" on --timer 30
@@ -139,7 +139,7 @@ E7SwitcherClient(account: str, password: str)
 #### Methods
 
 - `list_devices() -> List[Dict[str, Union[str, bool, int]]]`: Get a list of all available devices
-- `control_switch(device_name: str, turn_on: bool, operation_time: int = 0) -> None`: Control a switch device (operation_time in minutes)
+- `control_switch(device_name: str, turn_on: bool, operation_time: int = 0) -> None`: Control a switch device (operation_time in seconds)
 - `control_ac(device_name: str, turn_on: bool, mode: ACMode = ACMode.COOL, temperature: int = 20, fan_speed: ACFanSpeed = ACFanSpeed.FAN_MEDIUM, swing: ACSwing = ACSwing.SWING_ON, operation_time: int = 0) -> None`: Control an air conditioner device
 - `get_switch_status(device_name: str) -> Dict[str, Union[bool, int]]`: Get the status of a switch device
 - `get_ac_status(device_name: str) -> Dict[str, Union[str, int, float, bool]]`: Get the status of an air conditioner device

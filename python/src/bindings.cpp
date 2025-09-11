@@ -57,6 +57,21 @@ py::dict ac_status_to_dict(const ACStatus& status) {
     return result;
 }
 
+// Helper function to convert BoilerStatus to Python dict
+py::dict boiler_status_to_dict(const BoilerStatus& status) {
+    py::dict result;
+    result["switch_state"] = status.switch_state;
+    result["power"] = status.power;
+    result["electricity"] = status.electricity;
+    result["remaining_time"] = status.remaining_time;
+    result["open_time"] = status.open_time;
+    result["auto_closing_time"] = status.auto_closing_time;
+    result["is_delay"] = status.is_delay;
+    result["direction_equipment"] = status.direction_equipment;
+    result["online_state"] = status.online_state;
+    return result;
+}
+
 PYBIND11_MODULE(_core, m) {
     m.doc() = "E7 Switcher Python bindings";
     
@@ -104,6 +119,8 @@ PYBIND11_MODULE(_core, m) {
              py::arg("device_name"), py::arg("action"), py::arg("mode"),
              py::arg("temperature"), py::arg("fan_speed"), py::arg("swing"),
              py::arg("operation_time") = 0)
+        .def("control_boiler", &E7SwitcherClient::control_boiler,
+             py::arg("device_name"), py::arg("action"), py::arg("operation_time") = 0)
         .def("get_switch_status", [](E7SwitcherClient& self, const std::string& device_name) {
             SwitchStatus status = self.get_switch_status(device_name);
             return switch_status_to_dict(status);
@@ -111,5 +128,9 @@ PYBIND11_MODULE(_core, m) {
         .def("get_ac_status", [](E7SwitcherClient& self, const std::string& device_name) {
             ACStatus status = self.get_ac_status(device_name);
             return ac_status_to_dict(status);
+        }, py::arg("device_name"))
+        .def("get_boiler_status", [](E7SwitcherClient& self, const std::string& device_name) {
+            BoilerStatus status = self.get_boiler_status(device_name);
+            return boiler_status_to_dict(status);
         }, py::arg("device_name"));
 }
